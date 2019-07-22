@@ -1,152 +1,118 @@
-#include <chrono>
+#include <lo/lo.h>
+
 #include <iostream>
-#include <mutex>
-#include <thread>
 
-#include "libtcc.h"
+#include "RtAudio.h"
+#include "compiler.h"
 
-using PlayFunc = float (*)(double);
-using InitFunc = void (*)(void);
+//////////////////////////////////////////////////////////////////////////////
+// AUDIO THREAD //////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
 
-struct TCC {
-  TCCState* instance{nullptr};
-  PlayFunc function{nullptr};
+int process(void *outputBuffer, void *inputBuffer, unsigned frameCount,
+            double streamTime, RtAudioStreamStatus status, void *data) {
+  auto compiler = static_cast<SwappingCompiler *>(data);
 
-  void maybe_destroy() {
-    if (instance) {
-      tcc_delete(instance);
-
-      // tcc_delete does not null the pointer
-      instance = nullptr;
-    }
+  if (compiler->checkForNewCode()) {
+    printf("swapped in new code\n");
   }
 
-  ~TCC() { maybe_destroy(); }
-
-  int compile(const char* code) {
-    maybe_destroy();
-    instance = tcc_new();
-    if (instance == nullptr) return 1;
-
-    tcc_set_output_type(instance, TCC_OUTPUT_MEMORY);
-
-    if (0 != tcc_compile_string(instance, code)) return 2;
-    if (-1 == tcc_relocate(instance, TCC_RELOCATE_AUTO)) return 3;
-
-    function = (PlayFunc)tcc_get_symbol(instance, "play");
-    if (function == nullptr) return 4;
-
-    InitFunc init = (InitFunc)tcc_get_symbol(instance, "init");
-    if (init) init();
-
-    return 0;
+  unsigned n = 0;
+  float *o = static_cast<float *>(outputBuffer);
+  for (unsigned i = 0; i < frameCount; i = 1 + i) {
+    OutputType q = compiler->operator()();
+    o[n++] = q.left;
+    o[n++] = q.right;
+    // for (unsigned k = 0; k < OUTPUT_COUNT; k++)  //
+    //  o[n++] = q.data[k];
   }
 
-  float operator()(double t) {
-    if (function)
-      return function(t);
-    else
-      return 0;
-  }
-};
+  return 0;
+}
 
-struct SwappingCompiler {
-  TCC tcc[2];
-  std::mutex lock;
-  int active = 0;
-  bool shouldSwap = false;
+//////////////////////////////////////////////////////////////////////////////
+// COMPILER THREAD ///////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
 
-  // call from the audio thread
-  //
-  bool checkForNewCode() {
-    if (lock.try_lock()) {
-      if (shouldSwap) active = 1 - active;
-      shouldSwap = false;
-      lock.unlock();
-      return true;
-    }
-    return false;
-  }
+int handle_code(const char *path, const char *types, lo_arg **argv, int argc,
+                void *data, void *user_data) {
+  unsigned char *blobdata = (unsigned char *)lo_blob_dataptr((lo_blob)argv[0]);
+  int blobsize = lo_blob_datasize((lo_blob)argv[0]);
 
-  // call from the audio thread
-  //
-  float operator()(double t) { return tcc[active](0); }
+  std::string sourceCode(blobdata, blobdata + blobsize);
 
-  // call from the server thread
-  //
-  bool compileTry(const char* code) {
-    bool returnValue = false;
-    if (lock.try_lock()) {
-      if (tcc[1 - active].compile(code)) {
-        // compile failed
-      } else {
-        shouldSwap = true;
-        returnValue = true;
-      }
-      lock.unlock();
-    } else {
-      // someone else has the lock.. try again
-    }
-    return returnValue;
+  auto compiler = static_cast<SwappingCompiler *>(user_data);
+
+  printf("compiling...\n%s\n", sourceCode.c_str());
+  // if (compiler->compileTry(sourceCode.c_str())) {
+  if (compiler->compile(sourceCode.c_str())) {
+    printf("SUCCESS!\n");
+    fflush(stdout);
+  } else {
+    printf("FAIL!\n");
+    fflush(stdout);
   }
 
-  // call from the server thread
-  //
-  bool compile(const char* code) {
-    lock.lock();
-    bool returnValue = false;
-    if (tcc[1 - active].compile(code)) {
-      // compile failed
-    } else {
-      shouldSwap = true;
-      returnValue = true;
-    }
-    lock.unlock();
-    return returnValue;
-  }
-};
+  return 0;
+}
 
-int main(int argc, char* argv[]) {
+void handle_error(int num, const char *msg, const char *path) {
+  printf("liblo server error %d in path %s: %s\n", num, path, msg);
+  fflush(stdout);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// MAIN THREAD ///////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+
+int main(int argc, char *argv[]) {
   SwappingCompiler compiler;
-  bool done = false;
 
-  std::thread audio([&]() {
-    while (!done) {
-      if (compiler.checkForNewCode()) {
-        // do stuff
-      }
+  // SERVER/COMPILER THREAD
+  //
+  lo_server_thread s = lo_server_thread_new("9010", handle_error);
+  lo_server_thread_add_method(s, "/code", "b", handle_code, &compiler);
+  lo_server_thread_start(s);
 
-      for (int i = 0; i < 1024; i++) compiler(0);
-    }
-  });
+  // AUDIO THREAD
+  //
+  RtAudio dac;
 
-  const int N = 100000;
-
-  std::chrono::high_resolution_clock::time_point then{
-      std::chrono::high_resolution_clock::now()};
-
-  int missedLock = 0;
-
-  int n = 0;
-  while (n < N) {
-    if (compiler.compileTry("float play(double t) { return 100 * t; }")) {
-      // if the compile succeeded
-      n++;
-    } else {
-      // if the compile FAILED
-      missedLock++;
-    }
+  if (dac.getDeviceCount() < 1) {
+    printf("No audio devices found!\n");
+    exit(0);
   }
 
-  printf("missed: %d\n", missedLock);
-  printf("trials: %d\n", N);
-  printf("ellapsed: %lf\n",
-         std::chrono::duration<double>(
-             std::chrono::high_resolution_clock::now() - then)
-             .count());
+  unsigned frameCount = 512;
+  unsigned sampleRate = 44100;
+  RtAudio::StreamParameters oParams;
+  oParams.deviceId = dac.getDefaultOutputDevice();
+  oParams.nChannels = OUTPUT_COUNT;
 
-  done = true;
-  audio.join();
+  try {
+    dac.openStream(&oParams, nullptr, RTAUDIO_FLOAT32, sampleRate, &frameCount,
+                   &process, &compiler);
+    dac.startStream();
+  } catch (RtAudioError &e) {
+    printf("ERROR: %s\n", e.getMessage().c_str());
+    fflush(stdout);
+  }
 
+  ////////////////////////////////////////////////////////////////////////////
+  // WAIT FOR QUIT
+  ////////////////////////////////////////////////////////////////////////////
+
+  printf("Hit enter to quit...\n");
+  fflush(stdout);
+  getchar();
+
+  try {
+    dac.stopStream();
+    dac.closeStream();
+  } catch (RtAudioError &error) {
+    error.printMessage();
+  }
+
+  lo_server_thread_free(s);
   return 0;
 }
