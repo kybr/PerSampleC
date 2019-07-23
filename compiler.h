@@ -5,25 +5,26 @@
 #include "libtcc.h"
 
 constexpr const int OUTPUT_COUNT = 2;
-// template <int N>
-// struct Arr {
-//  float data[N];
-//};
-// using OutputType = Arr<OUTPUT_COUNT>;
-using OutputType = struct Stereo { float left, right; };
+template <int N>
+struct Arr {
+  float data[N];
+};
+using OutputType = Arr<OUTPUT_COUNT>;
+// using OutputType = struct Stereo { float left, right; };
 using PlayFunc = OutputType (*)(double);
 using InitFunc = void (*)(void);
 
 class TCC {
-  TCCState *instance;
+  TCCState* instance;
   PlayFunc play;
-  char *p;
+  // char *p;
+  size_t size;
   void maybe_destroy();
 
  public:
   TCC();
   ~TCC();
-  int compile(const char *code);
+  bool compile(const std::string& code);
   OutputType operator()(double t);
 };
 
@@ -47,9 +48,5 @@ class SwappingCompiler {
 
   // call from the server thread
   //
-  bool compileTry(const char *code);
-
-  // call from the server thread
-  //
-  bool compile(const char *code);
+  bool compile(const std::string& code, bool tryLock = false);
 };

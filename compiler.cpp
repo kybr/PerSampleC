@@ -2,7 +2,7 @@
 
 #include "libtcc.h"
 
-TCC::TCC() : instance(nullptr), play(nullptr), p(nullptr) {}
+TCC::TCC() : instance(nullptr), play(nullptr) {}  // , p(nullptr) {}
 
 void TCC::maybe_destroy() {
   if (instance) {
@@ -15,29 +15,44 @@ void TCC::maybe_destroy() {
 
 TCC::~TCC() { maybe_destroy(); }
 
-int TCC::compile(const char *code) {
+bool TCC::compile(const std::string &code) {
   maybe_destroy();
   instance = tcc_new();
-  if (instance == nullptr) return 1;
+  if (instance == nullptr) {
+    // XXX failed
+    return false;
+  }
 
   tcc_set_output_type(instance, TCC_OUTPUT_MEMORY);
   tcc_set_options(instance, "-Werror");
   // tcc_set_options(instance, "-Werror -g");
 
-  if (0 != tcc_compile_string(instance, code)) return 2;
+  if (0 != tcc_compile_string(instance, code.c_str())) {
+    // XXX failed to compile; check error
+    return false;
+  }
 
-  if (p) delete p;
-  int size = tcc_relocate(instance, nullptr);
-  p = new char[size];
-  if (-1 == tcc_relocate(instance, p)) return 3;
+  size = tcc_relocate(instance, nullptr);
+  if (-1 == tcc_relocate(instance, TCC_RELOCATE_AUTO)) {
+    // XXX failed to relocate
+    return false;
+  }
+
+  //  if (p) delete p;
+  //  int size = tcc_relocate(instance, nullptr);
+  //  p = new char[size];
+  //  if (-1 == tcc_relocate(instance, p)) return 3;
 
   play = (PlayFunc)tcc_get_symbol(instance, "play");
-  if (play == nullptr) return 4;
+  if (play == nullptr) {
+    // XXX no "play" symbol
+    return false;
+  }
 
   InitFunc init = (InitFunc)tcc_get_symbol(instance, "init");
   if (init) init();
 
-  return 0;
+  return true;
 }
 
 OutputType TCC::operator()(double t) {
@@ -65,31 +80,19 @@ OutputType SwappingCompiler::operator()() {
   return tcc[active](t);
 }
 
-bool SwappingCompiler::compileTry(const char *code) {
-  bool compileSucceeded = false;
-  if (lock.try_lock()) {
-    if (tcc[1 - active].compile(code)) {
-      // compile failed
-    } else {
-      shouldSwap = true;
-      compileSucceeded = true;
-    }
-    lock.unlock();
-  } else {
-    // XXX set error to "could not get the lock"
-  }
-  return compileSucceeded;
-}
+bool SwappingCompiler::compile(const std::string &code, bool tryLock) {
+  if (tryLock && !lock.try_lock())
+    return false;
+  else
+    lock.lock();  // blocking call
 
-bool SwappingCompiler::compile(const char *code) {
-  lock.lock();
   bool compileSucceeded = false;
+
   if (tcc[1 - active].compile(code)) {
-    // compile failed
-  } else {
     shouldSwap = true;
     compileSucceeded = true;
   }
+
   lock.unlock();
   return compileSucceeded;
 }

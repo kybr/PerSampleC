@@ -11,20 +11,22 @@
 
 int process(void *outputBuffer, void *inputBuffer, unsigned frameCount,
             double streamTime, RtAudioStreamStatus status, void *data) {
-  auto compiler = static_cast<SwappingCompiler *>(data);
+  SwappingCompiler &compiler(*static_cast<SwappingCompiler *>(data));
 
-  if (compiler->checkForNewCode()) {
+  if (compiler.checkForNewCode()) {
     printf("swapped in new code\n");
   }
+
+  // XXX do something more like this
+  //
+  // auto play = compiler.function();
 
   unsigned n = 0;
   float *o = static_cast<float *>(outputBuffer);
   for (unsigned i = 0; i < frameCount; i = 1 + i) {
-    OutputType q = compiler->operator()();
-    o[n++] = q.left;
-    o[n++] = q.right;
-    // for (unsigned k = 0; k < OUTPUT_COUNT; k++)  //
-    //  o[n++] = q.data[k];
+    OutputType q = compiler();
+    for (unsigned k = 0; k < OUTPUT_COUNT; k++)  //
+      o[n++] = q.data[k];
   }
 
   return 0;
@@ -41,17 +43,29 @@ int handle_code(const char *path, const char *types, lo_arg **argv, int argc,
 
   std::string sourceCode(blobdata, blobdata + blobsize);
 
-  auto compiler = static_cast<SwappingCompiler *>(user_data);
+  SwappingCompiler &compiler(*static_cast<SwappingCompiler *>(user_data));
+
+  // XXX
+  //
+  // - compute the hash of the code?
+  // - increment a "build number" and store with the compiler?
+  // - check if the code is exactly the same as last time
+
+  /*
+  static std::string lastCode = "";
+  if ((lastCode.size() == sourceCode.size()) && (lastCode == sourceCode)) {
+    // skip the compile
+    printf("ignoring repeated code\n");
+    return 0;
+  }
+  lastCode = sourceCode;
+  */
 
   printf("compiling...\n%s\n", sourceCode.c_str());
-  // if (compiler->compileTry(sourceCode.c_str())) {
-  if (compiler->compile(sourceCode.c_str())) {
-    printf("SUCCESS!\n");
-    fflush(stdout);
-  } else {
-    printf("FAIL!\n");
-    fflush(stdout);
+  if (!compiler.compile(sourceCode.c_str())) {
+    //  printf("FAIL!\n");
   }
+  fflush(stdout);
 
   return 0;
 }

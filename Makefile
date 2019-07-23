@@ -16,6 +16,8 @@ LINKER += -lpthread
 LINKER += -llo
 LINKER += -lasound
 
+all: per-sample-c per-sample-c-submit
+
 per-sample-c: per-sample-c.cpp compiler.cpp RtAudio.cpp
 	$(CXX) $(COMPILER) $^ -o $@ $(LINKER)
 
