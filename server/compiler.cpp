@@ -2,7 +2,7 @@
 
 #include "libtcc.h"
 
-TCC::TCC() : instance(nullptr), play(nullptr) {}  // , p(nullptr) {}
+TCC::TCC() : instance(nullptr), play(nullptr) {}
 
 void TCC::maybe_destroy() {
   if (instance) {
@@ -55,30 +55,7 @@ bool TCC::compile(const std::string &code) {
   return true;
 }
 
-OutputType TCC::operator()(double t) {
-  if (play == nullptr) return {0};
-  return play(t);
-}
-
-SwappingCompiler::SwappingCompiler() : active(0), shouldSwap(false), t(0) {}
-
-bool SwappingCompiler::checkForNewCode() {
-  bool hasSwappedCode = false;
-  if (lock.try_lock()) {
-    if (shouldSwap) {
-      active = 1 - active;
-      hasSwappedCode = true;
-    }
-    shouldSwap = false;
-    lock.unlock();
-  }
-  return hasSwappedCode;
-}
-
-OutputType SwappingCompiler::operator()() {
-  t += 1.0 / 44100;
-  return tcc[active](t);
-}
+SwappingCompiler::SwappingCompiler() : active(0), shouldSwap(false) {}
 
 bool SwappingCompiler::compile(const std::string &code, bool tryLock) {
   if (tryLock && !lock.try_lock())
@@ -95,4 +72,13 @@ bool SwappingCompiler::compile(const std::string &code, bool tryLock) {
 
   lock.unlock();
   return compileSucceeded;
+}
+
+PlayFunc SwappingCompiler::function(void) {
+  if (lock.try_lock()) {
+    if (shouldSwap) active = 1 - active;
+    shouldSwap = false;
+    lock.unlock();
+  }
+  return tcc[active].play;
 }

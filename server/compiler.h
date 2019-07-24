@@ -14,18 +14,14 @@ using OutputType = Arr<OUTPUT_COUNT>;
 using PlayFunc = OutputType (*)(double);
 using InitFunc = void (*)(void);
 
-class TCC {
+struct TCC {
   TCCState* instance;
   PlayFunc play;
-  // char *p;
   size_t size;
   void maybe_destroy();
-
- public:
   TCC();
   ~TCC();
   bool compile(const std::string& code);
-  OutputType operator()(double t);
 };
 
 class SwappingCompiler {
@@ -33,20 +29,15 @@ class SwappingCompiler {
   std::mutex lock;
   int active;
   bool shouldSwap;
-  double t;
 
  public:
   SwappingCompiler();
 
-  // call from the audio thread
-  //
-  bool checkForNewCode();
-
-  // call from the audio thread
-  //
-  OutputType operator()();
-
   // call from the server thread
   //
   bool compile(const std::string& code, bool tryLock = false);
+
+  // call from the audio thread
+  //
+  PlayFunc function();
 };

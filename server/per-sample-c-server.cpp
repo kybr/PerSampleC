@@ -11,20 +11,31 @@
 
 int process(void *outputBuffer, void *inputBuffer, unsigned frameCount,
             double streamTime, RtAudioStreamStatus status, void *data) {
+  //
+  //
   SwappingCompiler &compiler(*static_cast<SwappingCompiler *>(data));
+  float *o = static_cast<float *>(outputBuffer);
+  static double t = 0;
 
-  if (compiler.checkForNewCode()) {
-    printf("swapped in new code\n");
+  // detect code changes by looking at the pointer
+  //
+  auto play = compiler.function();
+
+  // silence if there's no code to run
+  //
+  if (play == nullptr) {
+    unsigned n = 0;
+    for (unsigned i = 0; i < frameCount; i = 1 + i) {
+      o[n++] = 0;
+      o[n++] = 0;
+    }
+    return 0;
   }
 
-  // XXX do something more like this
-  //
-  // auto play = compiler.function();
-
   unsigned n = 0;
-  float *o = static_cast<float *>(outputBuffer);
   for (unsigned i = 0; i < frameCount; i = 1 + i) {
-    OutputType q = compiler();
+    OutputType q = play(t);
+    t += 1.0 / 44100.0;
     for (unsigned k = 0; k < OUTPUT_COUNT; k++)  //
       o[n++] = q.data[k];
   }
