@@ -1,8 +1,4 @@
 
-typedef struct {
-  float left, right;
-} stereo;
-
 // phase wrap
 float fract(double t) { return t - (int)t; }
 
@@ -18,8 +14,8 @@ float phasor(unsigned which, float frequency) {
   return phase;
 }
 
-stereo play(double t) {
-  float e = fract(t * 5);
+void process(double t, float* i, float* o) {
+  float e = fract(t * 5.4);
   e = 1 - e;
   e *= e * e;
 
@@ -34,5 +30,6 @@ stereo play(double t) {
   p *= 0.1;
   q *= 0.1;
 
-  return (stereo){p, q};
+  o[0] = p;
+  o[1] = q;
 }
