@@ -12,11 +12,13 @@ struct Arr {
 using OutputType = Arr<OUTPUT_COUNT>;
 // using OutputType = struct Stereo { float left, right; };
 using PlayFunc = OutputType (*)(double);
+using ProcessFunc = void (*)(double, float*, float*);
 using InitFunc = void (*)(void);
 
 struct TCC {
   TCCState* instance;
-  PlayFunc play;
+  ProcessFunc function;
+  // PlayFunc function;
   size_t size;
   void maybe_destroy();
   TCC();
@@ -39,5 +41,6 @@ class SwappingCompiler {
 
   // call from the audio thread
   //
-  PlayFunc function();
+  ProcessFunc function();
+  // PlayFunc function();
 };

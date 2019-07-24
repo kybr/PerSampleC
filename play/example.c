@@ -1,4 +1,3 @@
-#define SAMPLE_RATE (44100)
 
 typedef struct {
   float left, right;

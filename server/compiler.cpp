@@ -2,7 +2,7 @@
 
 #include "libtcc.h"
 
-TCC::TCC() : instance(nullptr), play(nullptr) {}
+TCC::TCC() : instance(nullptr), function(nullptr) {}
 
 void TCC::maybe_destroy() {
   if (instance) {
@@ -27,6 +27,11 @@ bool TCC::compile(const std::string &code) {
   tcc_set_options(instance, "-Werror");
   // tcc_set_options(instance, "-Werror -g");
 
+  // tcc_define_symbol(instance, "SAMPLE_RATE", "44100");
+  // tcc_define_symbol(instance, "FRAME_COUNT", "512");
+  // tcc_define_symbol(instance, "CHANNELS_IN", "2");
+  // tcc_define_symbol(instance, "CHANNELS_OUT", "2");
+
   if (0 != tcc_compile_string(instance, code.c_str())) {
     // XXX failed to compile; check error
     return false;
@@ -34,7 +39,6 @@ bool TCC::compile(const std::string &code) {
 
   size = tcc_relocate(instance, nullptr);
   if (-1 == tcc_relocate(instance, TCC_RELOCATE_AUTO)) {
-    // XXX failed to relocate
     return false;
   }
 
@@ -43,8 +47,9 @@ bool TCC::compile(const std::string &code) {
   //  p = new char[size];
   //  if (-1 == tcc_relocate(instance, p)) return 3;
 
-  play = (PlayFunc)tcc_get_symbol(instance, "play");
-  if (play == nullptr) {
+  // function = (PlayFunc)tcc_get_symbol(instance, "play");
+  function = (ProcessFunc)tcc_get_symbol(instance, "process");
+  if (function == nullptr) {
     // XXX no "play" symbol
     return false;
   }
@@ -74,11 +79,12 @@ bool SwappingCompiler::compile(const std::string &code, bool tryLock) {
   return compileSucceeded;
 }
 
-PlayFunc SwappingCompiler::function(void) {
+ProcessFunc SwappingCompiler::function(void) {
+  // PlayFunc SwappingCompiler::function(void) {
   if (lock.try_lock()) {
     if (shouldSwap) active = 1 - active;
     shouldSwap = false;
     lock.unlock();
   }
-  return tcc[active].play;
+  return tcc[active].function;
 }

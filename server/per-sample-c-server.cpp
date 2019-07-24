@@ -14,30 +14,27 @@ int process(void *outputBuffer, void *inputBuffer, unsigned frameCount,
   //
   //
   SwappingCompiler &compiler(*static_cast<SwappingCompiler *>(data));
-  float *o = static_cast<float *>(outputBuffer);
+  float *input = static_cast<float *>(inputBuffer);
+  float *output = static_cast<float *>(outputBuffer);
   static double t = 0;
+  float in[8] = {0};
+  float out[8] = {0};
 
   // detect code changes by looking at the pointer
   //
   auto play = compiler.function();
 
-  // silence if there's no code to run
-  //
-  if (play == nullptr) {
-    unsigned n = 0;
-    for (unsigned i = 0; i < frameCount; i = 1 + i) {
-      o[n++] = 0;
-      o[n++] = 0;
+  if (play) {
+    unsigned i = 0;
+    unsigned o = 0;
+    for (unsigned _ = 0; _ < frameCount; _ = 1 + _) {
+      play(t, in, out);
+      t += 1.0 / 44100.0;
+      for (unsigned k = 0; k < OUTPUT_COUNT; k++) {
+        output[o] = out[k];
+        o = 1 + o;
+      }
     }
-    return 0;
-  }
-
-  unsigned n = 0;
-  for (unsigned i = 0; i < frameCount; i = 1 + i) {
-    OutputType q = play(t);
-    t += 1.0 / 44100.0;
-    for (unsigned k = 0; k < OUTPUT_COUNT; k++)  //
-      o[n++] = q.data[k];
   }
 
   return 0;
