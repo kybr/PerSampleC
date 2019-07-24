@@ -1,31 +1,23 @@
 #pragma once
 
-#include <mutex>
-
-#include "libtcc.h"
+#include <string>
 
 // signature each c sketch
 //
 using ProcessFunc = void (*)(double time, float* input, float* output);
 
-struct TCC {
-  TCCState* instance;
-  ProcessFunc function;
-  size_t size;
-  void maybe_destroy();
-  TCC();
-  ~TCC();
-  bool compile(const std::string& code);
-};
+// "pimpl" pattern hides implementation
+//
+class SwappingCompilerImplementation;
 
+//
+//
 class SwappingCompiler {
-  TCC tcc[2];
-  std::mutex lock;
-  int active;
-  bool shouldSwap;
+  SwappingCompilerImplementation* implementation;
 
  public:
   SwappingCompiler();
+  ~SwappingCompiler();
 
   // call from the server thread
   //

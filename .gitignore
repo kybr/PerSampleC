@@ -1,3 +1,5 @@
 *.o
 server/per-sample-c-server
 client/per-sample-c-client
+play/per-sample-c-server
+play/per-sample-c-client
