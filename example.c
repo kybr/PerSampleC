@@ -1,29 +1,39 @@
+#define SAMPLE_RATE (44100)
 
 typedef struct {
   float left, right;
-} Output;
+} stereo;
+
+// phase wrap
+float fract(double t) { return t - (int)t; }
+
+// [0, 1)
+float saw(float phase) { return 2 * phase - 1; }
 
 float phasor(unsigned which, float frequency) {
   static struct { float phase; } state[10];
   float phase = state[which].phase;
-  phase += frequency / 44100;
+  phase += frequency / SAMPLE_RATE;
   if (phase > 1) phase -= 1;
   state[which].phase = phase;
   return phase;
 }
 
-Output play(double t) {
-  float e = phasor(0, 2);
+stereo play(double t) {
+  float e = fract(t * 5);
   e = 1 - e;
   e *= e * e;
 
-  float f = phasor(3, 2.05);
-  f = 1 - f;
-  f *= f * f;
+  float p = saw(phasor(0, 55.0));
+  float q = saw(phasor(1, 55.1));
+  // float p = saw(fract(t * 27.5));
+  // float q = saw(fract(t * 55.1));
 
-  float q = phasor(1, 100) * 2 - 1;
-  float p = phasor(2, 100) * 2 - 1;
+  p *= e;
   q *= e;
-  p *= f;
-  return (Output){q, p};
+
+  p *= 0.1;
+  q *= 0.1;
+
+  return (stereo){p, q};
 }

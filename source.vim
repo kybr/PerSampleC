@@ -1,1 +1,1 @@
-autocmd TextChanged,TextChangedI *.c execute system('./per-sample-c-submit', getline(0, line('$')))
+autocmd TextChanged,TextChangedI *.c execute system('./per-sample-c-client', getline(0, line('$')))

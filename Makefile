@@ -16,17 +16,20 @@ LINKER += -lpthread
 LINKER += -llo
 LINKER += -lasound
 
-all: per-sample-c per-sample-c-submit
+all: per-sample-c-server per-sample-c-client
 
-per-sample-c: per-sample-c.cpp compiler.cpp RtAudio.cpp
-	$(CXX) $(COMPILER) $^ -o $@ $(LINKER)
+%.o: %.cpp
+	$(CXX) $^ -c $(COMPILER)
 
-per-sample-c-submit: per-sample-c-submit.cpp
+per-sample-c-server: per-sample-c-server.o compiler.o RtAudio.o
+	$(CXX) $^ -o $@ $(LINKER)
+
+per-sample-c-client: per-sample-c-client.cpp
 	$(CXX) $^ -o $@ -llo
 
 clean:
-	rm per-sample-c per-sample-c-submit test-compiler 
-	rm *.o
+	rm -f per-sample-c-server per-sample-c-client test-compiler 
+	rm -f RtAudio.o compiler.o per-sample-c.o per-sample-c-server.o
 
 test-compiler: test-compler.cpp compiler.cpp
 	$(CXX) $(COMPILER) $^ -o $@ $(LINKER)
