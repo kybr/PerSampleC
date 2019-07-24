@@ -68,9 +68,10 @@ int handle_code(const char *path, const char *types, lo_arg **argv, int argc,
   lastCode = sourceCode;
   */
 
-  printf("compiling...\n%s\n", sourceCode.c_str());
-  if (!compiler(sourceCode.c_str())) {
-    //  printf("FAIL!\n");
+  // printf("compiling...\n%s\n", sourceCode.c_str());
+  std::string e = compiler(sourceCode.c_str());
+  if (e.size() > 0) {
+    printf("ERROR: %s\n", e.c_str());
   }
   fflush(stdout);
 

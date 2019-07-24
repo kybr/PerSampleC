@@ -21,7 +21,7 @@ class SwappingCompiler {
 
   // call from the server thread
   //
-  bool operator()(const std::string& code, bool tryLock = false);
+  std::string operator()(const std::string& code, bool tryLock = false);
 
   // call from the audio thread
   //
