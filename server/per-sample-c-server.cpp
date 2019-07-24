@@ -5,6 +5,11 @@
 #include "RtAudio.h"
 #include "compiler.h"
 
+unsigned CHANNELS_OUT = 2;
+unsigned CHANNELS_IN = 0;
+unsigned SAMPLE_RATE = 48000;
+unsigned FRAME_COUNT = 512;
+
 //////////////////////////////////////////////////////////////////////////////
 // AUDIO THREAD //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -17,23 +22,17 @@ int process(void *outputBuffer, void *inputBuffer, unsigned frameCount,
   float *input = static_cast<float *>(inputBuffer);
   float *output = static_cast<float *>(outputBuffer);
   static double t = 0;
-  float in[8] = {0};
-  float out[8] = {0};
 
   // detect code changes by looking at the pointer
   //
-  auto play = compiler.function();
-
-  if (play) {
+  if (auto f = compiler()) {
     unsigned i = 0;
     unsigned o = 0;
     for (unsigned _ = 0; _ < frameCount; _ = 1 + _) {
-      play(t, in, out);
+      f(t, &input[i], &output[o]);
       t += 1.0 / 44100.0;
-      for (unsigned k = 0; k < OUTPUT_COUNT; k++) {
-        output[o] = out[k];
-        o = 1 + o;
-      }
+      i = i + CHANNELS_IN;
+      o = o + CHANNELS_OUT;
     }
   }
 
@@ -70,7 +69,7 @@ int handle_code(const char *path, const char *types, lo_arg **argv, int argc,
   */
 
   printf("compiling...\n%s\n", sourceCode.c_str());
-  if (!compiler.compile(sourceCode.c_str())) {
+  if (!compiler(sourceCode.c_str())) {
     //  printf("FAIL!\n");
   }
   fflush(stdout);
@@ -100,24 +99,29 @@ int main(int argc, char *argv[]) {
   //
   RtAudio dac;
 
-  if (dac.getDeviceCount() < 1) {
-    printf("No audio devices found!\n");
-    exit(0);
-  }
-
-  unsigned frameCount = 512;
-  unsigned sampleRate = 44100;
   RtAudio::StreamParameters oParams;
   oParams.deviceId = dac.getDefaultOutputDevice();
-  oParams.nChannels = OUTPUT_COUNT;
+  oParams.nChannels = CHANNELS_OUT;
+
+  RtAudio::StreamParameters iParams;
+  iParams.deviceId = dac.getDefaultInputDevice();
+  iParams.nChannels = CHANNELS_IN;
 
   try {
-    dac.openStream(&oParams, nullptr, RTAUDIO_FLOAT32, sampleRate, &frameCount,
-                   &process, &compiler);
+    unsigned frameCount = FRAME_COUNT;
+    unsigned sampleRate = SAMPLE_RATE;
+
+    dac.openStream(&oParams, CHANNELS_IN ? &iParams : nullptr, RTAUDIO_FLOAT32,
+                   sampleRate, &frameCount, &process, &compiler);
+
+    if (FRAME_COUNT != frameCount) {
+      // die
+    }
     dac.startStream();
   } catch (RtAudioError &e) {
     printf("ERROR: %s\n", e.getMessage().c_str());
     fflush(stdout);
+    exit(1);
   }
 
   ////////////////////////////////////////////////////////////////////////////

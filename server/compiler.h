@@ -4,21 +4,13 @@
 
 #include "libtcc.h"
 
-constexpr const int OUTPUT_COUNT = 2;
-template <int N>
-struct Arr {
-  float data[N];
-};
-using OutputType = Arr<OUTPUT_COUNT>;
-// using OutputType = struct Stereo { float left, right; };
-using PlayFunc = OutputType (*)(double);
-using ProcessFunc = void (*)(double, float*, float*);
-using InitFunc = void (*)(void);
+// signature each c sketch
+//
+using ProcessFunc = void (*)(double time, float* input, float* output);
 
 struct TCC {
   TCCState* instance;
   ProcessFunc function;
-  // PlayFunc function;
   size_t size;
   void maybe_destroy();
   TCC();
@@ -37,10 +29,9 @@ class SwappingCompiler {
 
   // call from the server thread
   //
-  bool compile(const std::string& code, bool tryLock = false);
+  bool operator()(const std::string& code, bool tryLock = false);
 
   // call from the audio thread
   //
-  ProcessFunc function();
-  // PlayFunc function();
+  ProcessFunc operator()();
 };
