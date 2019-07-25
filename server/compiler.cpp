@@ -3,31 +3,23 @@
 #include <math.h>
 
 #include <mutex>
+#include <string>
 
 #include "libtcc.h"
 
-extern unsigned CHANNELS_OUT;
-extern unsigned CHANNELS_IN;
+using std::string;
+
 extern unsigned SAMPLE_RATE;
-extern unsigned FRAME_COUNT;
 
 //////////////////////////////////////////////////////////////////////////////
 // Tiny C Compiler ///////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 
-std::string errorMessage;
-
-void tcc_error_handler(void* tcc, const char* msg) {
-  errorMessage = msg;
-  // TODO:
-  // Given error string like this:
-  //   <string>:5: error: declaration expected
-  //
-  // - Remove file name prefix which is "<string>"
-  // - Correct line number which is off by the header size
+void tcc_error_handler(void* str, const char* msg) {
+  static_cast<string*>(str)->append(msg);
 }
 
-std::string header = R"(
+string header = R"(
 float log(float);
 float pow(float, float);
 )";
@@ -47,16 +39,20 @@ struct TCC {
     }
   }
 
-  bool compile(const std::string& code) {
+  bool compile(const string& code, string* err) {
     maybe_destroy();
     instance = tcc_new();
     if (instance == nullptr) {
-      errorMessage = "Null Instance";
+      err->append("Null Instance");
       return false;
     }
 
-    tcc_set_error_func(instance, nullptr, tcc_error_handler);
-    tcc_set_options(instance, "-Werror");  // treat warnings as errors
+    tcc_set_error_func(instance, (void*)err, tcc_error_handler);
+
+    // treat warnings as errors
+    tcc_set_options(instance, "-Wall -Werror -nostdinc -nostdlib");
+    // tcc_set_options(instance, "-Wall -Werror");
+
     tcc_set_output_type(instance, TCC_OUTPUT_MEMORY);
 
     // Define Pre-Processor Symbols
@@ -68,7 +64,13 @@ struct TCC {
     // Do the compile step
     //
     if (0 != tcc_compile_string(instance, (header + code).c_str())) {
-      // XXX failed to compile; check error
+      // TODO:
+      // Given error string like this:
+      //   <string>:5: error: declaration expected
+      //   $FILE ':' $LINE ':' $MESSAGE
+      //
+      // - Remove file name prefix which is "<string>"
+      // - Correct line number which is off by the header size
       return false;
     }
 
@@ -76,28 +78,21 @@ struct TCC {
     tcc_add_symbol(instance, "pow", (void*)powf);
 
     size = tcc_relocate(instance, nullptr);
+
     if (-1 == tcc_relocate(instance, TCC_RELOCATE_AUTO)) {
-      errorMessage = "Relocate Failed";
+      err->append("Relocate Failed");
       return false;
     }
 
-    //  if (p) delete p;
-    //  int size = tcc_relocate(instance, nullptr);
-    //  p = new char[size];
-    //  if (-1 == tcc_relocate(instance, p)) return 3;
-
     function = (ProcessFunc)tcc_get_symbol(instance, "process");
     if (function == nullptr) {
-      errorMessage = "No 'process' Symbol";
-      // XXX no "process" symbol
+      err->append("No 'process' Symbol");
       return false;
     }
 
     using InitFunc = void (*)(void);
     InitFunc init = (InitFunc)tcc_get_symbol(instance, "init");
     if (init) init();
-
-    errorMessage = "";
 
     return true;
   }
@@ -112,23 +107,28 @@ struct SwappingCompilerImplementation {
   std::mutex lock;
   int active{0};
   bool shouldSwap{false};
+  int size;
 
-  std::string compile(const std::string& code, bool tryLock) {
-    if (tryLock && !lock.try_lock())
-      return std::string("No Lock");
-    else
-      lock.lock();  // blocking call
+  bool compile(const string& code, string* err) {
+#if _USE_TRY_LOCK
+    if (tryLock && !lock.try_lock()) {
+      string("No Lock");
+      return false;
+    }
+#else
+    lock.lock();  // blocking call
+#endif
 
-    std::string message;
+    bool compileSucceeded = false;
 
-    if (tcc[1 - active].compile(code)) {
+    if (tcc[1 - active].compile(code, err)) {
+      this->size = tcc[1 - active].size;
       shouldSwap = true;
-    } else {
-      message = errorMessage;
+      compileSucceeded = true;
     }
 
     lock.unlock();
-    return message;
+    return compileSucceeded;
   }
 
   ProcessFunc getFunctionMaybeSwap() {
@@ -149,9 +149,10 @@ SwappingCompiler::SwappingCompiler()
     : implementation(new SwappingCompilerImplementation) {}
 SwappingCompiler::~SwappingCompiler() { delete implementation; }
 
-std::string SwappingCompiler::operator()(const std::string& code,
-                                         bool tryLock) {
-  return implementation->compile(code, tryLock);
+int SwappingCompiler::size() { return implementation->size; }
+
+bool SwappingCompiler::operator()(const string& code, string* err) {
+  return implementation->compile(code, err);
 }
 
 ProcessFunc SwappingCompiler::operator()(void) {

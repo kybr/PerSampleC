@@ -2,6 +2,8 @@
 
 #include <string>
 
+using std::string;
+
 // signature each c sketch
 //
 using ProcessFunc = void (*)(double time, float* input, float* output);
@@ -16,12 +18,14 @@ class SwappingCompiler {
   SwappingCompilerImplementation* implementation;
 
  public:
+  int size();
+
   SwappingCompiler();
   ~SwappingCompiler();
 
   // call from the server thread
   //
-  std::string operator()(const std::string& code, bool tryLock = false);
+  bool operator()(const string& code, string* err);
 
   // call from the audio thread
   //

@@ -1,4 +1,3 @@
-
 // phase wrap
 float fract(double t) { return t - (int)t; }
 
@@ -15,7 +14,8 @@ float phasor(unsigned which, float frequency) {
 }
 
 void process(double t, float* i, float* o) {
-  float e = fract(t * 5.4);
+  float e = fract(t * 4.3);
+
   e = 1 - e;
   e *= e * e;
 

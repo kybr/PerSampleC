@@ -10,6 +10,27 @@ unsigned CHANNELS_IN = 0;
 unsigned SAMPLE_RATE = 48000;
 unsigned FRAME_COUNT = 512;
 
+uint16_t fletcher16(const uint8_t *data, size_t len) {
+  uint32_t c0, c1;
+  unsigned int i;
+
+  for (c0 = c1 = 0; len >= 5802; len -= 5802) {
+    for (i = 0; i < 5802; ++i) {
+      c0 = c0 + *data++;
+      c1 = c1 + c0;
+    }
+    c0 = c0 % 255;
+    c1 = c1 % 255;
+  }
+  for (i = 0; i < len; ++i) {
+    c0 = c0 + *data++;
+    c1 = c1 + c0;
+  }
+  c0 = c0 % 255;
+  c1 = c1 % 255;
+  return (c1 << 8 | c0);
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // AUDIO THREAD //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -58,7 +79,8 @@ int handle_code(const char *path, const char *types, lo_arg **argv, int argc,
   // - increment a "build number" and store with the compiler?
   // - check if the code is exactly the same as last time
 
-  /*
+  // when used with a clang-format filter, this seems to ignore many minor edits
+  //
   static std::string lastCode = "";
   if ((lastCode.size() == sourceCode.size()) && (lastCode == sourceCode)) {
     // skip the compile
@@ -66,13 +88,21 @@ int handle_code(const char *path, const char *types, lo_arg **argv, int argc,
     return 0;
   }
   lastCode = sourceCode;
-  */
 
-  // printf("compiling...\n%s\n", sourceCode.c_str());
-  std::string e = compiler(sourceCode.c_str());
-  if (e.size() > 0) {
-    printf("ERROR: %s\n", e.c_str());
+  // Compile the code and maybe print stats
+  //
+  std::string err;
+  if (compiler(sourceCode, &err)) {
+    printf("SUCCESS!\n");
+    printf("code size: %u\n", compiler.size());
+    printf("string length: %u\n", sourceCode.size());
+    printf("checksum: %04x\n",
+           fletcher16((const uint8_t *)sourceCode.c_str(), sourceCode.size()));
+  } else {
+    printf("ERROR: %s\n", err.c_str());
   }
+  printf("\n////////////////////////////////////////////////////////////////");
+  printf("\n");
   fflush(stdout);
 
   return 0;
@@ -87,6 +117,15 @@ void handle_error(int num, const char *msg, const char *path) {
 // MAIN THREAD ///////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 
+// TODO:
+//
+// - gather and process command line settings
+// - settings
+//   + sample rate
+//   + frame count
+//   + channels in/out
+//   + server port
+//
 int main(int argc, char *argv[]) {
   SwappingCompiler compiler;
 
