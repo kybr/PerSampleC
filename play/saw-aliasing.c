@@ -14,6 +14,9 @@ void process(double t, float* i, float* o) {
   // make a full-range saw from a ramp
   float a = 2 * phase - 1;
 
+  // reduce amplitude
+  a *= 0.8;
+
   // output
-  o[0] = o[1] = (float)a;
+  o[0] = o[1] = a;
 }

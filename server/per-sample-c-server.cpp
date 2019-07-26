@@ -7,8 +7,8 @@
 
 unsigned CHANNELS_OUT = 2;
 unsigned CHANNELS_IN = 0;
-unsigned SAMPLE_RATE = 48000;
-unsigned FRAME_COUNT = 512;
+unsigned SAMPLE_RATE = 44100;
+unsigned FRAME_COUNT = 1024;
 
 uint16_t fletcher16(const uint8_t *data, size_t len) {
   uint32_t c0, c1;
