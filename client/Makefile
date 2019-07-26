@@ -1,7 +1,7 @@
 .SUFFIXES:
 
 CXX =
-CXX += g++
+CXX += c++
 CXX += -std=c++11
 
 COMPILER =

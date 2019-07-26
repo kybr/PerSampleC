@@ -1,20 +1,21 @@
 .SUFFIXES:
 
 CXX =
-CXX += g++
+CXX += c++
 CXX += -std=c++11
 
 COMPILER =
 COMPILER += -Wall
 COMPILER += -g
-COMPILER += -D__LINUX_ALSA__ 
+COMPILER += -D__MACOSX_CORE__
 
 LINKER =
 LINKER += -ltcc
 LINKER += -ldl
 LINKER += -lpthread
 LINKER += -llo
-LINKER += -lasound
+LINKER += -framework CoreAudio
+LINKER += -framework CoreFoundation
 
 _: per-sample-c-server
 
