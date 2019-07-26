@@ -42,7 +42,6 @@ int process(void *outputBuffer, void *inputBuffer, unsigned frameCount,
   SwappingCompiler &compiler(*static_cast<SwappingCompiler *>(data));
   float *input = static_cast<float *>(inputBuffer);
   float *output = static_cast<float *>(outputBuffer);
-  static double t = 0;
 
   // detect code changes by looking at the pointer
   //
@@ -50,8 +49,8 @@ int process(void *outputBuffer, void *inputBuffer, unsigned frameCount,
     unsigned i = 0;
     unsigned o = 0;
     for (unsigned _ = 0; _ < frameCount; _ = 1 + _) {
-      f(t, &input[i], &output[o]);
-      t += 1.0 / 44100.0;
+      f(streamTime, &input[i], &output[o]);
+      streamTime += 1.0 / SAMPLE_RATE;
       i = i + CHANNELS_IN;
       o = o + CHANNELS_OUT;
     }
