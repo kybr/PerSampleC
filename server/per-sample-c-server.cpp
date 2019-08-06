@@ -72,6 +72,8 @@ int handle_code(const char *path, const char *types, lo_arg **argv, int argc,
 
   SwappingCompiler &compiler(*static_cast<SwappingCompiler *>(user_data));
 
+  // printf("%s\n", sourceCode.c_str());
+
   // XXX
   //
   // - compute the hash of the code?

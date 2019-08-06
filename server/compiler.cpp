@@ -20,8 +20,17 @@ void tcc_error_handler(void* str, const char* msg) {
 }
 
 string header = R"(
-float log(float);
-float pow(float, float);
+double sin(double);
+double cos(double);
+double exp(double);
+double log(double);
+double log2(double);
+double log10(double);
+double modf(double x, double* intpart);
+double pow(double, double);
+double sqrt(double);
+double fmod(double numer, double denom);
+double fabs(double x);
 )";
 
 struct TCC {
@@ -60,6 +69,8 @@ struct TCC {
     char buffer[10];
     sprintf(buffer, "%u", SAMPLE_RATE);
     tcc_define_symbol(instance, "SAMPLE_RATE", buffer);
+    sprintf(buffer, "%lf", M_PI);
+    tcc_define_symbol(instance, "PI", buffer);
 
     // Do the compile step
     //
@@ -74,8 +85,9 @@ struct TCC {
       return false;
     }
 
-    tcc_add_symbol(instance, "log", (void*)logf);
-    tcc_add_symbol(instance, "pow", (void*)powf);
+    // tcc_add_symbol(instance, "log", (void*)logf);
+    // tcc_add_symbol(instance, "log", (void*)logf);
+    tcc_add_library(instance, "m");
 
     size = tcc_relocate(instance, nullptr);
 
