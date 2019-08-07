@@ -3,6 +3,7 @@
 #include <math.h>
 
 #include <mutex>
+#include <regex>
 #include <string>
 
 #include "libtcc.h"
@@ -70,18 +71,27 @@ struct TCC {
     sprintf(buffer, "%u", SAMPLE_RATE);
     tcc_define_symbol(instance, "SAMPLE_RATE", buffer);
     sprintf(buffer, "%lf", M_PI);
-    tcc_define_symbol(instance, "PI", buffer);
+    tcc_define_symbol(instance, "M_PI", buffer);
 
     // Do the compile step
     //
     if (0 != tcc_compile_string(instance, (header + code).c_str())) {
-      // TODO:
       // Given error string like this:
       //   <string>:5: error: declaration expected
       //   $FILE ':' $LINE ':' $MESSAGE
       //
-      // - Remove file name prefix which is "<string>"
-      // - Correct line number which is off by the header size
+      std::regex re("^([^:]+):(\\d+):(.*)$");
+      std::smatch m;
+      if (std::regex_match(*err, m, re)) {
+        err->clear();
+        err->append("line:");
+        err->append(std::to_string(stoi(m[2])));
+        err->append(m[3].str());
+
+      } else {
+        err->append(" | failed to match error");
+      }
+
       return false;
     }
 
@@ -103,7 +113,7 @@ struct TCC {
     }
 
     using InitFunc = void (*)(void);
-    InitFunc init = (InitFunc)tcc_get_symbol(instance, "init");
+    InitFunc init = (InitFunc)tcc_get_symbol(instance, "begin");
     if (init) init();
 
     return true;

@@ -27,8 +27,8 @@ void process(double t, float* i, float* o) {
   p *= e;
   q *= e;
 
-  p *= 0.1;
-  q *= 0.1;
+  p *= 0.4;
+  q *= 0.4;
 
   o[0] = p;
   o[1] = q;

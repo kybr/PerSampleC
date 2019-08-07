@@ -17,6 +17,7 @@ float mtof(float m) { return 8.175799 * pow(2.0, m / 12.0); }
 float ftom(float f) { return 12.0 * log2(f / 8.175799); }
 
 #define N (500)
+
 float memory[N];
 unsigned _index = 0;
 
@@ -51,7 +52,7 @@ float biquad(float x0, float b0, float b1, float b2, float a1, float a2) {
 }
 
 float lpf(float x0, float f0, float Q) {
-  float omega = 2 * PI * f0 / SAMPLE_RATE;
+  float omega = 2 * M_PI * f0 / SAMPLE_RATE;
   float alpha = sin(omega) / (2 * Q);
 
   float a0 = 1 + alpha;
@@ -64,8 +65,8 @@ float lpf(float x0, float f0, float Q) {
   return biquad(x0, b0 / a0, b1 / a0, b2 / a0, a1 / a0, a2 / a0);
 }
 
-void notch(float x0, float f0, float Q) {
-  float omega = 2 * PI * f0 / SAMPLE_RATE;
+float notch(float x0, float f0, float Q) {
+  float omega = 2 * M_PI * f0 / SAMPLE_RATE;
   float alpha = sin(omega) / (2 * Q);
 
   float a0 = 1 + alpha;
@@ -134,12 +135,13 @@ void init(void) {
 void process(double t, float* i, float* o) {
   _index = 0;
 
-  t *= 3.1;
+  t *= 5.1;
   int T = t;
   float e = t - T;
 
   float f = mtof(((float[8]){60, 47, 62, 48, 51, 63, 75, 59})[T % 8]);
   f = onepole(f, 0.997);
+  f *= 1.0;
 
   float z = mtof(40 + 80 * (1 - e));
   z = onepole(z, 0.997);
@@ -150,14 +152,14 @@ void process(double t, float* i, float* o) {
   {
     float p = phasor(f);
     g = multi(p, r) / 2;
-    g = lpf(g, z, 0.7);
+    g = lpf(g, z, 1.9);
   }
 
   float h = 0;
   {
     float p = phasor(f * 0.987);
     h = multi(p, r) / 2;
-    h = lpf(h, z, 0.8);
+    h = lpf(h, z, 1.8);
   }
 
   o[0] = h * 0.9;

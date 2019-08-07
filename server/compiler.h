@@ -10,7 +10,7 @@ using ProcessFunc = void (*)(double time, float* input, float* output);
 
 // "pimpl" pattern hides implementation
 //
-class SwappingCompilerImplementation;
+struct SwappingCompilerImplementation;
 
 //
 //

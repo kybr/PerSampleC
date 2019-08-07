@@ -100,7 +100,7 @@ int handle_code(const char *path, const char *types, lo_arg **argv, int argc,
     printf("checksum: %04x\n",
            fletcher16((const uint8_t *)sourceCode.c_str(), sourceCode.size()));
   } else {
-    printf("ERROR: %s\n", err.c_str());
+    printf("%s\n", err.c_str());
   }
   printf("\n////////////////////////////////////////////////////////////////");
   printf("\n");

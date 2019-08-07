@@ -40,7 +40,7 @@ void init(void) {
 void process(double t, float* i, float* o) {
   index = 0;
 
-  t *= 5.1;
+  t *= 7.4;
 
   float g = 0;
   {
@@ -55,7 +55,7 @@ void process(double t, float* i, float* o) {
   float h = 0;
   {
     float f = ((float[8]){55, 110, 220, 440, 55, 440, 110, 220})[((int)t) % 7];
-    float p = phasor(3 * f / 2);
+    float p = phasor(f);
     for (int i = 0; i < (((int)t) % 5); i++)  //
       p *= p;
 
@@ -64,5 +64,4 @@ void process(double t, float* i, float* o) {
 
   o[0] = h * 0.9;
   o[1] = g * 0.9;
-  // o[0] = o[1] = 0;
 }
