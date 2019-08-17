@@ -10,27 +10,7 @@ unsigned CHANNELS_IN = 0;
 unsigned SAMPLE_RATE = 44100;
 unsigned FRAME_COUNT = 1024;
 
-uint16_t fletcher16(const uint8_t *data, size_t len) {
-  uint32_t c0, c1;
-  unsigned int i;
-
-  for (c0 = c1 = 0; len >= 5802; len -= 5802) {
-    for (i = 0; i < 5802; ++i) {
-      c0 = c0 + *data++;
-      c1 = c1 + c0;
-    }
-    c0 = c0 % 255;
-    c1 = c1 % 255;
-  }
-  for (i = 0; i < len; ++i) {
-    c0 = c0 + *data++;
-    c1 = c1 + c0;
-  }
-  c0 = c0 % 255;
-  c1 = c1 % 255;
-  return (c1 << 8 | c0);
-}
-
+uint16_t fletcher16(const uint8_t *data, size_t len);
 //////////////////////////////////////////////////////////////////////////////
 // AUDIO THREAD //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -96,7 +76,7 @@ int handle_code(const char *path, const char *types, lo_arg **argv, int argc,
   if (compiler(sourceCode, &err)) {
     printf("SUCCESS!\n");
     printf("code size: %u\n", compiler.size());
-    printf("string length: %u\n", sourceCode.size());
+    printf("string length: %zu\n", sourceCode.size());
     printf("checksum: %04x\n",
            fletcher16((const uint8_t *)sourceCode.c_str(), sourceCode.size()));
   } else {
@@ -182,4 +162,25 @@ int main(int argc, char *argv[]) {
 
   lo_server_thread_free(s);
   return 0;
+}
+
+uint16_t fletcher16(const uint8_t *data, size_t len) {
+  uint32_t c0, c1;
+  unsigned int i;
+
+  for (c0 = c1 = 0; len >= 5802; len -= 5802) {
+    for (i = 0; i < 5802; ++i) {
+      c0 = c0 + *data++;
+      c1 = c1 + c0;
+    }
+    c0 = c0 % 255;
+    c1 = c1 % 255;
+  }
+  for (i = 0; i < len; ++i) {
+    c0 = c0 + *data++;
+    c1 = c1 + c0;
+  }
+  c0 = c0 % 255;
+  c1 = c1 % 255;
+  return (c1 << 8 | c0);
 }

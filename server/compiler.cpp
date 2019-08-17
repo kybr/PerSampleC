@@ -73,9 +73,11 @@ struct TCC {
     sprintf(buffer, "%lf", M_PI);
     tcc_define_symbol(instance, "M_PI", buffer);
 
+    string actual = header + code;
+
     // Do the compile step
     //
-    if (0 != tcc_compile_string(instance, (header + code).c_str())) {
+    if (0 != tcc_compile_string(instance, actual.c_str())) {
       // Given error string like this:
       //   <string>:5: error: declaration expected
       //   $FILE ':' $LINE ':' $MESSAGE
@@ -83,6 +85,12 @@ struct TCC {
       std::regex re("^([^:]+):(\\d+):(.*)$");
       std::smatch m;
       if (std::regex_match(*err, m, re)) {
+        // int line = stoi(m[2]);
+
+        // XXX
+        //
+        // given the line number, extract the actual line
+
         err->clear();
         err->append("line:");
         err->append(std::to_string(stoi(m[2])));
