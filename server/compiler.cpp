@@ -20,21 +20,6 @@ void tcc_error_handler(void* str, const char* msg) {
   static_cast<string*>(str)->append(msg);
 }
 
-string header = R"(
-double sin(double);
-double cos(double);
-double exp(double);
-double log(double);
-double tanh(double);
-double log2(double);
-double log10(double);
-double modf(double x, double* intpart);
-double pow(double, double);
-double sqrt(double);
-double fmod(double numer, double denom);
-double fabs(double x);
-)";
-
 struct TCC {
   TCCState* instance{nullptr};
   ProcessFunc function{nullptr};
@@ -71,14 +56,10 @@ struct TCC {
     char buffer[10];
     sprintf(buffer, "%u", SAMPLE_RATE);
     tcc_define_symbol(instance, "SAMPLE_RATE", buffer);
-    sprintf(buffer, "%lf", M_PI);
-    tcc_define_symbol(instance, "M_PI", buffer);
-
-    string actual = header + code;
 
     // Do the compile step
     //
-    if (0 != tcc_compile_string(instance, actual.c_str())) {
+    if (0 != tcc_compile_string(instance, code.c_str())) {
       // Given error string like this:
       //   <string>:5: error: declaration expected
       //   $FILE ':' $LINE ':' $MESSAGE

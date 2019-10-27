@@ -1,6 +1,5 @@
 #include <lo/lo.h>
 
-#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -13,21 +12,6 @@ std::string slurp(const std::string &fileName);
 std::string slurp();
 
 unsigned SAMPLE_RATE = 44100;
-
-string header = R"(
-double sin(double);
-double cos(double);
-double exp(double);
-double log(double);
-double tanh(double);
-double log2(double);
-double log10(double);
-double modf(double x, double* intpart);
-double pow(double, double);
-double sqrt(double);
-double fmod(double numer, double denom);
-double fabs(double x);
-)";
 
 int main(int argc, char *argv[]) {
   // use command line arguments to...
@@ -52,14 +36,16 @@ int main(int argc, char *argv[]) {
   char buffer[10];
   sprintf(buffer, "%u", SAMPLE_RATE);
   tcc_define_symbol(instance, "SAMPLE_RATE", buffer);
-  sprintf(buffer, "%lf", M_PI);
-  tcc_define_symbol(instance, "M_PI", buffer);
 
-  string actual = header + sourceCode;
-  if (0 != tcc_compile_string(instance, actual.c_str())) {
+  if (0 != tcc_compile_string(instance, sourceCode.c_str())) {
     exit(1);
   }
+
+  // XXX for now, we leave this here, but eventually, we should
+  // get this linker information from a modeline
+  //
   tcc_add_library(instance, "m");
+
   int size = tcc_relocate(instance, nullptr);
 
   if (-1 == tcc_relocate(instance, TCC_RELOCATE_AUTO)) {

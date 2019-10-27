@@ -1,3 +1,4 @@
+#include "math.h"
 #define N (1000)
 float memory[N];
 unsigned _index = 0;
@@ -66,6 +67,6 @@ void process(double t, float* i, float* o) {
     g *= 1.0 / s;
   }
 
-  o[0] = 0;  // f * 0.9 * e;
+  o[0] = f * 0.9 * e;
   o[1] = g * 0.9 * e;
 }

@@ -1,3 +1,4 @@
+#include "math.h"
 #define N (100)
 float memory[N];
 unsigned _index = 0;

@@ -1,3 +1,4 @@
+#include "math.h"
 #define N (1000)
 
 float memory[N];
@@ -17,7 +18,7 @@ float ms20(float x, float f, float q) {
   return z[1];
 }
 
-float foo(float x, float t, float s) {  //
+float nonlin(float x, float t, float s) {  //
   if (x > 0)
     return x < t ? x : s * (x + t);
   else
@@ -32,7 +33,7 @@ void process(double t, float* i, float* o) {
   t = 1 - t;
   t = ms20(t, 110, 2.0);
   t = ms20(t, 55, 2.0);
-  // t = foo(t, 0.9, 1);
+  // t = nonlin(t, 0.9, 1);
   t = tanh(5 * t);
   o[0] = o[1] = t * 0.9;
 }

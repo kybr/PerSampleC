@@ -1,10 +1,12 @@
+#include "math.h"
+
 #define N (10000)
 float table[N];
 
 // XXX
 // libc++abi.dylib: terminating with uncaught exception of type
 // std::invalid_argument: stoi: no conversion
-#include "h.h"
+#include "synth.h"
 
 // called once just after a compile
 // before process ever runs

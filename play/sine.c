@@ -1,3 +1,4 @@
+#include "math.h"
 void process(double t, float* i, float* o) {
   float g = t * 110;
   g -= (int)g;

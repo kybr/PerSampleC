@@ -1,3 +1,4 @@
+#include "math.h"
 #define N (10000)
 float table[N];
 

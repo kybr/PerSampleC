@@ -1,3 +1,5 @@
+#include "math.h"
+
 #define N (10000)
 float table[N];
 
@@ -21,5 +23,5 @@ void process(double t, float* i, float* o) {
     int index = g * (N - 1.0);
     f += 0.1 * table[index];
   }
-  o[0] = o[1] = f * 0.1;
+  o[0] = o[1] = f * 0.9;
 }
