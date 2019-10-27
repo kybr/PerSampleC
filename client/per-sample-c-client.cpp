@@ -24,20 +24,25 @@ int main(int argc, char *argv[]) {
   else
     sourceCode = slurp();
 
-  // try to compile (time this!)
-  // if it fails, report error and exit
-  // run a few times in case it crashes (time this?!)
+  // try to compile the program immediately here in the client so we might
+  // report that to the user as soon as possible. don't send failing programs
+  // to the server.
   //
-
   TCCState *instance = tcc_new();
   tcc_set_options(instance, "-Wall -Werror -nostdinc -nostdlib");
   tcc_set_output_type(instance, TCC_OUTPUT_MEMORY);
 
+  // XXX sample rate
+  //
+  // making sample rate a function call, a global variable, or a
+  // parameter of the process callback might be better
+  //
   char buffer[10];
   sprintf(buffer, "%u", SAMPLE_RATE);
   tcc_define_symbol(instance, "SAMPLE_RATE", buffer);
 
   if (0 != tcc_compile_string(instance, sourceCode.c_str())) {
+    // TCC already printed the error on the standard out
     exit(1);
   }
 
@@ -63,13 +68,22 @@ int main(int argc, char *argv[]) {
   InitFunc init = (InitFunc)tcc_get_symbol(instance, "begin");
   if (init) init();
 
-  ////////
-  // better that this crash now than it crash the server
+  // try to run the program here in the client so we might find out if the
+  // program crashes. report the crash to the user; don't send crashing
+  // programs to the server.
+  //
+  // how many times should we call process?
+  //
   float i[8] = {0};
   float o[8] = {0};
   for (int n = 0; n < 44100; n++)  //
     function((double)n / SAMPLE_RATE, i, o);
 
+  //
+  // at this point, we are either crashed or we are ready to send the code on
+  //
+
+  //
   // run pre-processor to remove comments and include files
   //
   // libtcc lets us run the preprocessor when we pass TCC_OUTPUT_PREPROCESS to
@@ -80,9 +94,11 @@ int main(int argc, char *argv[]) {
   // https://stackoverflow.com/questions/5419356/redirect-stdout-stderr-to-a-string
   //
 
+  //
   // maybe...
   //   minify (instead of clang-format)
   //   extract "modeline" commands
+  //
 
   lo_blob b = lo_blob_new(sourceCode.size(), sourceCode.data());
   lo_address t = lo_address_new(nullptr, "9010");
