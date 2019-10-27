@@ -15,7 +15,7 @@ void process(double t, float* i, float* o) {
   float a = 2 * phase - 1;
 
   // reduce amplitude
-  a *= 0.8;
+  a *= 0.1;
 
   // output
   o[0] = o[1] = a;

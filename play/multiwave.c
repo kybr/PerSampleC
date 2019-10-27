@@ -155,6 +155,8 @@ void process(double t, float* i, float* o) {
     g = lpf(g, z, 1.9);
   }
 
+  // i can write this without clicks
+
   float h = 0;
   {
     float p = phasor(f * 0.987);

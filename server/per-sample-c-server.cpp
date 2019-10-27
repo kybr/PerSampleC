@@ -23,9 +23,16 @@ int process(void *outputBuffer, void *inputBuffer, unsigned frameCount,
   float *input = static_cast<float *>(inputBuffer);
   float *output = static_cast<float *>(outputBuffer);
 
-  // detect code changes by looking at the pointer
-  //
-  if (auto f = compiler()) {
+  // TODO:
+  // - cross-fade content on change
+  //   + detect changes by looking at the pointer
+  //   + use both functions for this frame
+  // - add control inputs
+  //   + after
+  auto f = compiler();
+  if (f == nullptr) {
+    // make silence
+  } else {
     unsigned i = 0;
     unsigned o = 0;
     for (unsigned _ = 0; _ < frameCount; _ = 1 + _) {

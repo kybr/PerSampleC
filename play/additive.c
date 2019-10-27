@@ -28,9 +28,10 @@ void init(void) {
 void process(double t, float* i, float* o) {
   _index = 0;  // reset the memory pointer
 
-  t *= 4.4;
+  t *= 7.4;
   int T = t;
 
+  // https://www.desmos.com/calculator/fcj35px60j
   float e = fabs(sin(M_PI * t)) * 5;
   if (e > 1) e = 1;
 
@@ -41,7 +42,8 @@ void process(double t, float* i, float* o) {
   {
     float s = 0;
 
-    int H = T % 15;
+    // int H = T % 15;
+    int H = 10;
     for (int h = 1; h <= 1 + H; h++) {
       float a = 1.0 / 1;
       f += sin(2 * M_PI * phasor(hz * h)) * a;
@@ -54,7 +56,8 @@ void process(double t, float* i, float* o) {
   {
     float s = 0;
 
-    int H = T % 17;
+    // int H = T % 17;
+    int H = 100;
     for (int h = 1; h <= 1 + H; h++) {
       float a = 1.0 / h;
       g += sin(2 * M_PI * phasor(hz * h * 1.01)) * a;
@@ -63,6 +66,6 @@ void process(double t, float* i, float* o) {
     g *= 1.0 / s;
   }
 
-  o[0] = f * 0.9 * e;
+  o[0] = 0;  // f * 0.9 * e;
   o[1] = g * 0.9 * e;
 }

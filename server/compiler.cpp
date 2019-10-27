@@ -25,6 +25,7 @@ double sin(double);
 double cos(double);
 double exp(double);
 double log(double);
+double tanh(double);
 double log2(double);
 double log10(double);
 double modf(double x, double* intpart);

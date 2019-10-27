@@ -13,10 +13,9 @@ void process(double d, float* i, float* o) {
   // simulate 8000 Hz playback rate
   d *= 8000.0 * 1.0;
 
-  char l = viznut_music(d, which);
-  char r = viznut_music(d, which);
+  char r = t * 5 & (t >> 7) | t * 3 & (t * 4 >> 10);
 
-  o[0] = l / 128.0 * 0.3;
+  o[0] = r / 128.0 * 0.3;
   o[1] = r / 128.0 * 0.3;
 }
 
@@ -73,8 +72,8 @@ char viznut_music(int t, int s) {
       return (t >> 7 | t | t >> 6) * 10 + 4 * (t & t >> 13 | t >> 6);
 
     case 14:  // viznut/viznut-music/e-skurk-raer.c
-      return ((t & 4096) ? ((t * (t ^ t % 255) | (t >> 4)) >> 1)
-                         : (t >> 3) | ((t & 8192) ? t << 2 : t));
+      return (t & 4096) ? ((t * (t ^ t % 255) | (t >> 4)) >> 1)
+                        : (t >> 3) | ((t & 8192) ? t << 2 : t);
 
     case 15:  // viznut/viznut-music/f-xpansive-lost-in-space.c
       return ((t * (t >> 8 | t >> 9) & 46 & t >> 8)) ^ (t & t >> 13 | t >> 6);

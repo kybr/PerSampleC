@@ -8,3 +8,25 @@ compiler infrastructure.
 
 We should add a bunch of built-in functions like those offered by GLSL,
 GenExpr, Puredata, Max, and SuperCollider.
+
+- test on Windows
+- make plugins for atom, vscode, and sublime
+- need a way to include standard math library functions
+- need error reporting in the editor
+- pi + dac + arduino with knobs
+
+Ideas:
+
+- client shortcut compile
+  + report compile error immediately
+  + don't send to server
+- remove clang-format dependency
+- store each program for playback
+- maintain a session recording on the server
+- command line arguments for server
+  + audio device
+  + sample rate
+  + include path
+  + report status 
+- expose server configuration on OSC
+- switch to oscpkt (drop liblo)

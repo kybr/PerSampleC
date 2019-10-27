@@ -40,7 +40,7 @@ void init(void) {
 void process(double t, float* i, float* o) {
   index = 0;
 
-  t *= 7.4;
+  t *= 2.4;
 
   float g = 0;
   {

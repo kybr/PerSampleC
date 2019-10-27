@@ -91,7 +91,7 @@ void init(void) {
 void process(double t, float* i, float* o) {
   index = 0;
 
-  t *= 5.1;
+  t *= 3.1;
   int T = t;
 
   float g = 0;
