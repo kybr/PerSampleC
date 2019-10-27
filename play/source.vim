@@ -16,10 +16,10 @@ function! TryCode()
 " echo 'hello'
 
   if l:message != ''
-    echoerr 'Per-Sample C: ' . l:message
+    echomsg 'Per-Sample C: ' . l:message
   else
     if v:shell_error != 0
-      echoerr 'Per-Sample C: CRASH!'
+      echomsg 'Per-Sample C: CRASH!'
     endif
   endif
 endfunction
