@@ -80,6 +80,7 @@ int handle_code(const char *path, const char *types, lo_arg **argv, int argc,
   // Compile the code and maybe print stats
   //
   std::string err;
+  printf("\n/////////////////////////////////////////////////////////////\n");
   if (compiler(sourceCode, &err)) {
     printf("SUCCESS!\n");
     printf("code size: %u\n", compiler.size());
@@ -89,8 +90,7 @@ int handle_code(const char *path, const char *types, lo_arg **argv, int argc,
   } else {
     printf("%s\n", err.c_str());
   }
-  printf("\n////////////////////////////////////////////////////////////////");
-  printf("\n");
+  printf("\n/////////////////////////////////////////////////////////////\n");
   fflush(stdout);
 
   return 0;
