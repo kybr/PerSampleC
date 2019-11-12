@@ -46,8 +46,8 @@ struct TCC {
     tcc_set_error_func(instance, (void*)err, tcc_error_handler);
 
     // treat warnings as errors
-    tcc_set_options(instance, "-Wall -Werror -nostdinc -nostdlib");
-    // tcc_set_options(instance, "-Wall -Werror");
+    // tcc_set_options(instance, "-Wall -Werror -nostdinc -nostdlib");
+    tcc_set_options(instance, "-Wall -Werror");
 
     tcc_set_output_type(instance, TCC_OUTPUT_MEMORY);
 
@@ -60,6 +60,9 @@ struct TCC {
     // Do the compile step
     //
     if (0 != tcc_compile_string(instance, code.c_str())) {
+      // TODO: move all this to the client. the server should never fail to
+      // compile now because the client does this check
+
       // Given error string like this:
       //   <string>:5: error: declaration expected
       //   $FILE ':' $LINE ':' $MESSAGE
