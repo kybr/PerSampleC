@@ -89,13 +89,24 @@ int main(int argc, char *argv[]) {
   float i[8] = {0};
   float o[8] = {0};
   float maximum = 0;
-  for (int n = 0; n < 44100; n++) {
+  for (int n = 0; n < 44100 * 8; n++) {
     function((double)n / SAMPLE_RATE, i, o);
     if (fabs(o[0]) > maximum)  //
       maximum = abs(o[0]);
     if (fabs(o[1]) > maximum)  //
       maximum = abs(o[1]);
   }
+
+  //
+  // of course, it fails on this program:
+  //
+  // void process(double d, float* i, float* o) {  //
+  //   o[0] = d;
+  //   o[1] = d;
+  // }
+  //
+  // because d is below 1 for the first second!
+  //
 
   if (maximum > 1) {
     printf("Clipping would occur.\n");
