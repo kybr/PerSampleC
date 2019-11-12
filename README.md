@@ -30,3 +30,17 @@ Ideas:
   + report status 
 - expose server configuration on OSC
 - switch to oscpkt (drop liblo)
+
+ꛘ
+
+## Why?
+
+Several motivating questions drive this project. Its direction, features and
+limitations result from asking (and not necessarily answering):
+
+- What would an "audio shader" look like? GLSL for sound?
+- How might we make teaching DSP and C/C++ easy/fun?
+- What if someone put a gun to my head and said "Write music in pure C."
+- What would make a good discovery environment for ByteBeat?
+- What if we think of music a just the result of a bunch of calculations?
+- How did the ancients write music code? (C64, Mario Brothers, Zelda)
