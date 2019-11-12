@@ -8,12 +8,19 @@
 unsigned CHANNELS_OUT = 2;
 unsigned CHANNELS_IN = 0;
 unsigned SAMPLE_RATE = 44100;
-unsigned FRAME_COUNT = 1024;
+unsigned FRAME_COUNT = 512;
 
 uint16_t fletcher16(const uint8_t *data, size_t len);
 //////////////////////////////////////////////////////////////////////////////
 // AUDIO THREAD //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
+
+void clamp(float *data, int size) {
+  for (int i = 0; i < size; i++) {
+    if (data[i] > 1) data[i] = 1;
+    if (data[i] < -1) data[i] = -1;
+  }
+}
 
 int process(void *outputBuffer, void *inputBuffer, unsigned frameCount,
             double streamTime, RtAudioStreamStatus status, void *data) {
@@ -59,6 +66,7 @@ int process(void *outputBuffer, void *inputBuffer, unsigned frameCount,
     // XXX clip check? because macOS volume control seems to just multiply by a
     // gain value---we should test this. if the number is very large even a low
     // setting may be very loud when the volume setting is low but not mute.
+    clamp(output, frameCount * CHANNELS_OUT);
 
     return 0;
   }
@@ -82,6 +90,7 @@ int process(void *outputBuffer, void *inputBuffer, unsigned frameCount,
       o = o + CHANNELS_OUT;
     }
 
+    clamp(output, frameCount * CHANNELS_OUT);
     return 0;
   }
 
@@ -121,6 +130,8 @@ int process(void *outputBuffer, void *inputBuffer, unsigned frameCount,
       n++;
     }
   }
+
+  clamp(output, frameCount * CHANNELS_OUT);
 
   f_ = f;
 
