@@ -212,7 +212,7 @@ int main(int argc, char *argv[]) {
 
   // SERVER/COMPILER THREAD
   //
-  lo_server_thread s = lo_server_thread_new("9010", handle_error);
+  lo_server_thread s = lo_server_thread_new("9011", handle_error);
   lo_server_thread_add_method(s, "/code", "b", handle_code, &compiler);
   lo_server_thread_start(s);
 

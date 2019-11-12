@@ -16,7 +16,7 @@ unsigned SAMPLE_RATE = 44100;
 
 int main(int argc, char *argv[]) {
   // use command line arguments to...
-  // set destination address and port (defaults 127.0.0.1:9010)
+  // set destination address and port (defaults 127.0.0.1:9011)
   // disable compile checking or other processes
 
   std::string sourceCode;
@@ -136,7 +136,7 @@ int main(int argc, char *argv[]) {
 
   // TODO: switch back to oscpkt OR go TCP
   lo_blob b = lo_blob_new(sourceCode.size(), sourceCode.data());
-  lo_address t = lo_address_new(nullptr, "9010");
+  lo_address t = lo_address_new(nullptr, "9011");
   if (!lo_send(t, "/code", "b", b)) {
     printf("failed to send packet.");
     fflush(stdout);
