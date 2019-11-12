@@ -1,5 +1,6 @@
 #include <lo/lo.h>
 
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -29,7 +30,10 @@ int main(int argc, char *argv[]) {
   // to the server.
   //
   TCCState *instance = tcc_new();
-  tcc_set_options(instance, "-Wall -Werror -nostdinc -nostdlib");
+  // TODO: determine these from a modeline
+  tcc_set_options(instance, "-Wall -Werror");
+  // tcc_set_options(instance, "-Wall -Werror -nostdinc");
+  // tcc_set_options(instance, "-Wall -Werror -nostdinc -nostdlib");
   tcc_set_output_type(instance, TCC_OUTPUT_MEMORY);
 
   // XXX sample rate
@@ -38,6 +42,7 @@ int main(int argc, char *argv[]) {
   // parameter of the process callback might be better
   //
   char buffer[10];
+  // TODO: determine these from a modeline
   sprintf(buffer, "%u", SAMPLE_RATE);
   tcc_define_symbol(instance, "SAMPLE_RATE", buffer);
 
@@ -54,15 +59,22 @@ int main(int argc, char *argv[]) {
   int size = tcc_relocate(instance, nullptr);
 
   if (-1 == tcc_relocate(instance, TCC_RELOCATE_AUTO)) {
-    printf("Relocate failed!");
+    printf("Relocate failed! Linking problem?\n");
     exit(1);
   }
 
   ProcessFunc function = (ProcessFunc)tcc_get_symbol(instance, "process");
   if (function == nullptr) {
-    printf("No process callback found.");
+    printf("No process callback found.\n");
     exit(1);
   }
+
+  // TODO: allow block processing by looking for a block() function
+  // BlockProcessFunc function = (BlockFunc)tcc_get_symbol(instance, "block");
+  // if (function == nullptr) {
+  //  printf("No block callback found.\n");
+  //  exit(1);
+  //}
 
   using InitFunc = void (*)(void);
   InitFunc init = (InitFunc)tcc_get_symbol(instance, "begin");
@@ -72,12 +84,23 @@ int main(int argc, char *argv[]) {
   // program crashes. report the crash to the user; don't send crashing
   // programs to the server.
   //
-  // how many times should we call process?
+  // how many times should we call process? time this?
   //
   float i[8] = {0};
   float o[8] = {0};
-  for (int n = 0; n < 44100; n++)  //
+  float maximum = 0;
+  for (int n = 0; n < 44100; n++) {
     function((double)n / SAMPLE_RATE, i, o);
+    if (fabs(o[0]) > maximum)  //
+      maximum = abs(o[0]);
+    if (fabs(o[1]) > maximum)  //
+      maximum = abs(o[1]);
+  }
+
+  if (maximum > 1) {
+    printf("Clipping would occur.\n");
+    exit(1);
+  }
 
   //
   // at this point, we are either crashed or we are ready to send the code on
@@ -100,6 +123,7 @@ int main(int argc, char *argv[]) {
   //   extract "modeline" commands
   //
 
+  // TODO: switch back to oscpkt OR go TCP
   lo_blob b = lo_blob_new(sourceCode.size(), sourceCode.data());
   lo_address t = lo_address_new(nullptr, "9010");
   if (!lo_send(t, "/code", "b", b)) {
