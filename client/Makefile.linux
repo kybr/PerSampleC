@@ -10,6 +10,8 @@ COMPILER += -g
 
 LINKER =
 LINKER += -llo
+LINKER += -ltcc
+LINKER += -ldl
 
 _: per-sample-c-client
 
