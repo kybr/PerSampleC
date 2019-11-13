@@ -92,7 +92,8 @@ struct TCC {
     // tcc_add_symbol(instance, "log", (void*)logf);
     tcc_add_library(instance, "m");
 
-    size = tcc_relocate(instance, nullptr);
+    // XXX broken on linux
+    // size = tcc_relocate(instance, nullptr);
 
     if (-1 == tcc_relocate(instance, TCC_RELOCATE_AUTO)) {
       err->append("Relocate Failed");

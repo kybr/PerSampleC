@@ -56,7 +56,19 @@ int main(int argc, char *argv[]) {
   //
   tcc_add_library(instance, "m");
 
-  int size = tcc_relocate(instance, nullptr);
+  // clang-format off
+  // XXX this breaks on linux; we get this kind of stuff:
+  //   tcc: error: '_etext' defined twice... may be -fcommon is needed?
+  //   tcc: error: '_edata' defined twice... may be -fcommon is needed?
+  //   tcc: error: '_end' defined twice... may be -fcommon is needed?
+  //   tcc: error: '__preinit_array_start' defined twice... may be -fcommon is needed?
+  //   tcc: error: '__preinit_array_end' defined twice... may be -fcommon is needed?
+  //   tcc: error: '__init_array_start' defined twice... may be -fcommon is needed?
+  //   tcc: error: '__init_array_end' defined twice... may be -fcommon is needed?
+  //   tcc: error: '__fini_array_start' defined twice... may be -fcommon is needed?
+  //   tcc: error: '__fini_array_end' defined twice... may be -fcommon is needed?
+  // int size = tcc_relocate(instance, nullptr);
+  // clang-format on
 
   if (-1 == tcc_relocate(instance, TCC_RELOCATE_AUTO)) {
     printf("Relocate failed! Linking problem?\n");
