@@ -1,4 +1,3 @@
-
 #include <cmath>
 #include <mutex>
 #include <regex>
@@ -16,6 +15,49 @@ unsigned SAMPLE_RATE = 44100;
 unsigned FRAME_COUNT = 1024;
 
 using namespace al;
+
+const char* vertexCode = R"(
+#version 330
+
+uniform mat4 al_ModelViewMatrix;
+uniform mat4 al_ProjectionMatrix;
+
+uniform float cursor;
+uniform float moveMode;
+
+layout (location = 0) in vec3 position;
+
+out float closeness;
+
+void main() {
+  vec3 p = position;
+  if (p.x < cursor) {
+    p.x += 1 - cursor;
+  }
+  else {
+    p.x -= cursor + 1;
+  }
+  if (moveMode > 0.5)
+    gl_Position = al_ProjectionMatrix * al_ModelViewMatrix * vec4(p, 1.0);
+  else 
+    gl_Position = al_ProjectionMatrix * al_ModelViewMatrix * vec4(position, 1.0);
+  closeness = (p.x + 1) / 2;
+}
+)";
+
+const char* fragmentCode = R"(
+#version 330
+
+uniform float color;
+
+layout(location = 0) out vec4 fragmentColor;
+
+in float closeness;
+
+void main() {
+  fragmentColor = vec4(color, color, color, closeness * closeness);
+}
+)";
 
 // signature each c sketch
 //
@@ -217,13 +259,19 @@ struct MyApp : App {
   SwappingCompiler compiler;
   double streamTime{0};
 
+  ShaderProgram shader;
+
   Mesh wave[N];
 
   Mesh horizontal, vertical;
 
   void onCreate() override {  //
+
+    shader.compile(vertexCode, fragmentCode);
+
     horizontal.primitive(Mesh::LINES);
     horizontal.vertex(-1, 0);
+    horizontal.vertex(1, 0);
     horizontal.vertex(1, 0);
     vertical.primitive(Mesh::LINES);
     vertical.vertex(0, -1);
@@ -273,7 +321,7 @@ struct MyApp : App {
   double seconds{7};
   double samplesPerPixel{1};
 
-  void onAnimate(double dt) {
+  void onAnimate(double dt) override {
     static int Width;
     static int Height;
     if (Width != width() || Height != height()) {
@@ -310,7 +358,7 @@ struct MyApp : App {
       }
     }
 
-    if (skinnyLines)
+    if (moveMode > 0.5)
       for (int j = 0; j < N; j++)  //
         wave[j].primitive(Mesh::LINES);
     else
@@ -322,15 +370,17 @@ struct MyApp : App {
   }
 
   bool darkMode{false};
-  bool skinnyLines{false};
+  float moveMode{0};
 
-  bool onKeyUp(Keyboard const& k) {
+  bool onKeyUp(Keyboard const& k) override {
     if (k.key() == ' ') {
-      darkMode = !darkMode;
+      foreground = 1 - foreground;
     }
+
     if (k.key() == '\\') {
-      skinnyLines = !skinnyLines;
+      moveMode = 1 - moveMode;
     }
+
     if (k.key() == '-' || k.key() == '_') {
       seconds *= 1 / 1.23;
       // seconds -= 0.5;
@@ -347,41 +397,39 @@ struct MyApp : App {
     return true;
   }
 
-  void onDraw(Graphics& g) {
-    float background, foreground, grey;
-    if (darkMode) {
-      background = 0;
-      foreground = 1;
-      grey = 0.2;
-    } else {
-      background = 1;
-      foreground = 0;
-      grey = 0.8;
-    }
-    g.clear(background);
+  float foreground{0};
 
+  void onDraw(Graphics& g) override {
+    g.clear(1 - foreground);
+    g.blending(true);
+    g.blendModeTrans();
     g.camera(Viewpoint::IDENTITY);
 
-    g.color(grey);
+    g.shader(shader);
+    g.shader().uniform("cursor", (float)cursor);
+    g.shader().uniform("moveMode", moveMode);
+    g.update();
+
+    g.shader().uniform("color", 0.5);
     g.draw(vertical);
 
     g.scale(1, 1.0 / 8, 1);
     g.translate(0, 1 + 6, 0);
-    g.color(grey);
+    g.shader().uniform("color", 0.5);
     g.draw(horizontal);
-    g.color(foreground);
+    g.shader().uniform("color", foreground);
     g.draw(wave[0]);
 
     for (int n = 1; n < N; n++) {
       g.translate(0, -2, 0);
-      g.color(grey);
+      g.shader().uniform("color", 0.5);
       g.draw(horizontal);
-      g.color(foreground);
+      g.shader().uniform("color", foreground);
       g.draw(wave[n]);
     }
   }
 
-  void onMessage(osc::Message& m) {
+  void onMessage(osc::Message& m) override {
     if (m.addressPattern() == "/time") {
       m >> streamTime;
       // printf("time=%lf\n", streamTime);
