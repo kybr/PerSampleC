@@ -22,6 +22,8 @@ void clamp(float *data, int size) {
   }
 }
 
+lo_address t = lo_address_new(nullptr, "9010");
+
 int process(void *outputBuffer, void *inputBuffer, unsigned frameCount,
             double streamTime, RtAudioStreamStatus status, void *data) {
   //
@@ -29,6 +31,8 @@ int process(void *outputBuffer, void *inputBuffer, unsigned frameCount,
   SwappingCompiler &compiler(*static_cast<SwappingCompiler *>(data));
   float *input = static_cast<float *>(inputBuffer);
   float *output = static_cast<float *>(outputBuffer);
+
+  lo_send(t, "/time", "d", streamTime);
 
   static ProcessFunc f_{nullptr};
   ProcessFunc f = compiler();
