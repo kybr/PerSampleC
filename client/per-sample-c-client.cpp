@@ -143,6 +143,14 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
+  // send also to the visualizer
+  lo_address T = lo_address_new(nullptr, "9010");
+  if (!lo_send(T, "/code", "b", b)) {
+    printf("failed to send packet.");
+    fflush(stdout);
+    exit(1);
+  }
+
   return 0;
 }
 
