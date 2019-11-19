@@ -24,6 +24,8 @@ void clamp(float *data, int size) {
 
 lo_address t = lo_address_new(nullptr, "9010");
 
+bool disableCrossFade{true};
+
 int process(void *outputBuffer, void *inputBuffer, unsigned frameCount,
             double streamTime, RtAudioStreamStatus status, void *data) {
   //
@@ -37,12 +39,25 @@ int process(void *outputBuffer, void *inputBuffer, unsigned frameCount,
   static ProcessFunc f_{nullptr};
   ProcessFunc f = compiler();
 
+  for (unsigned _ = 0; _ < frameCount * CHANNELS_OUT; _ = 1 + _)  //
+    output[_] = 0;
+
   if (f == nullptr) {
+    return 0;
+  }
+
+  if (disableCrossFade) {
+    unsigned i = 0;
+    unsigned o = 0;
     for (unsigned _ = 0; _ < frameCount; _ = 1 + _) {
-      for (unsigned c = 0; c < CHANNELS_OUT; c = 1 + c)  //
-        output[c] = 0;
-      return 0;
+      f(streamTime, &input[i], &output[o]);
+      streamTime += 1.0 / SAMPLE_RATE;
+      i = i + CHANNELS_IN;
+      o = o + CHANNELS_OUT;
     }
+
+    clamp(output, frameCount * CHANNELS_OUT);
+    return 0;
   }
 
   if (f_ == nullptr) {
@@ -67,9 +82,10 @@ int process(void *outputBuffer, void *inputBuffer, unsigned frameCount,
       }
     }
 
-    // XXX clip check? because macOS volume control seems to just multiply by a
-    // gain value---we should test this. if the number is very large even a low
-    // setting may be very loud when the volume setting is low but not mute.
+    // XXX clip check? because macOS volume control seems to just multiply by
+    // a gain value---we should test this. if the number is very large even a
+    // low setting may be very loud when the volume setting is low but not
+    // mute.
     clamp(output, frameCount * CHANNELS_OUT);
 
     return 0;
@@ -80,7 +96,8 @@ int process(void *outputBuffer, void *inputBuffer, unsigned frameCount,
   // - cross-fade content on change
   //   + detect changes by looking at the pointer
   //   + use both functions for this frame
-  //   + but this doubles (or more) the amount of work this callback might do??
+  //   + but this doubles (or more) the amount of work this callback might
+  //   do??
   //     * justification: we only support small programs
   // - add control inputs
 

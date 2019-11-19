@@ -3,11 +3,13 @@
 
 #include "math.h"
 
-#define N (10000)
+#define N (200000)
+//#define N (100000)
+//#define N (1000000)
 
-float _memory[N];
-float _table[N];
-unsigned _index = 0;
+static float _memory[N];
+static float _table[N];
+static unsigned _index = 0;
 
 // call this at the start of each process to service the system
 void synth_process() {  //
