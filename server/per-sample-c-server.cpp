@@ -24,8 +24,15 @@ void clamp(float *data, int size) {
 
 lo_address t = lo_address_new(nullptr, "9010");
 
-bool disableCrossFade{true};
-
+// TODO:
+// - add Ableton Link support
+// - cross-fade content on change
+//   + detect changes by looking at the pointer
+//   + use both functions for this frame
+//   + but this doubles (or more) the amount of work this callback might
+//   do??
+//     * justification: we only support small programs
+// - add control inputs
 int process(void *outputBuffer, void *inputBuffer, unsigned frameCount,
             double streamTime, RtAudioStreamStatus status, void *data) {
   //
@@ -36,125 +43,29 @@ int process(void *outputBuffer, void *inputBuffer, unsigned frameCount,
 
   lo_send(t, "/time", "d", streamTime);
 
-  static ProcessFunc f_{nullptr};
-  ProcessFunc f = compiler();
-
   for (unsigned _ = 0; _ < frameCount * CHANNELS_OUT; _ = 1 + _)  //
     output[_] = 0;
+
+  ProcessFunc f = compiler();
 
   if (f == nullptr) {
     return 0;
   }
 
-  if (disableCrossFade) {
-    unsigned i = 0;
-    unsigned o = 0;
-    for (unsigned _ = 0; _ < frameCount; _ = 1 + _) {
-      f(streamTime, &input[i], &output[o]);
-      streamTime += 1.0 / SAMPLE_RATE;
-      i = i + CHANNELS_IN;
-      o = o + CHANNELS_OUT;
-    }
-
-    clamp(output, frameCount * CHANNELS_OUT);
-    return 0;
+  unsigned i = 0;
+  unsigned o = 0;
+  for (unsigned _ = 0; _ < frameCount; _ = 1 + _) {
+    f(streamTime, &input[i], &output[o]);
+    streamTime += 1.0 / SAMPLE_RATE;
+    i = i + CHANNELS_IN;
+    o = o + CHANNELS_OUT;
   }
 
-  if (f_ == nullptr) {
-    f_ = f;
-
-    unsigned i = 0;
-    unsigned o = 0;
-    for (unsigned _ = 0; _ < frameCount; _ = 1 + _) {
-      f(streamTime, &input[i], &output[o]);
-      streamTime += 1.0 / SAMPLE_RATE;
-      i = i + CHANNELS_IN;
-      o = o + CHANNELS_OUT;
-    }
-
-    // fade in
-    int n = 0;
-    for (unsigned j = 0; j < frameCount; j++) {
-      float t = (float)j / frameCount;
-      for (unsigned c = 0; c < CHANNELS_OUT; c++) {
-        output[n] *= t;
-        n++;
-      }
-    }
-
-    // XXX clip check? because macOS volume control seems to just multiply by
-    // a gain value---we should test this. if the number is very large even a
-    // low setting may be very loud when the volume setting is low but not
-    // mute.
-    clamp(output, frameCount * CHANNELS_OUT);
-
-    return 0;
-  }
-
-  // TODO:
-  // - add Ableton Link support
-  // - cross-fade content on change
-  //   + detect changes by looking at the pointer
-  //   + use both functions for this frame
-  //   + but this doubles (or more) the amount of work this callback might
-  //   do??
-  //     * justification: we only support small programs
-  // - add control inputs
-
-  if (f == f_) {
-    unsigned i = 0;
-    unsigned o = 0;
-    for (unsigned _ = 0; _ < frameCount; _ = 1 + _) {
-      f(streamTime, &input[i], &output[o]);
-      streamTime += 1.0 / SAMPLE_RATE;
-      i = i + CHANNELS_IN;
-      o = o + CHANNELS_OUT;
-    }
-
-    clamp(output, frameCount * CHANNELS_OUT);
-    return 0;
-  }
-
-  // collect the output of _ into an array, fading out
-  //
-
-  float outputFadeOut[frameCount * CHANNELS_OUT];
-  {
-    double streamTimeCopy = streamTime;
-    unsigned i = 0;
-    unsigned o = 0;
-    for (unsigned _ = 0; _ < frameCount; _ = 1 + _) {
-      f_(streamTimeCopy, &input[i], &outputFadeOut[o]);
-      streamTimeCopy += 1.0 / SAMPLE_RATE;
-      i = i + CHANNELS_IN;
-      o = o + CHANNELS_OUT;
-    }
-  }
-
-  float outputFadeIn[frameCount * CHANNELS_OUT];
-  {
-    unsigned i = 0;
-    unsigned o = 0;
-    for (unsigned _ = 0; _ < frameCount; _ = 1 + _) {
-      f(streamTime, &input[i], &outputFadeIn[o]);
-      streamTime += 1.0 / SAMPLE_RATE;
-      i = i + CHANNELS_IN;
-      o = o + CHANNELS_OUT;
-    }
-  }
-
-  int n = 0;
-  for (unsigned j = 0; j < frameCount; j++) {
-    float t = (float)j / frameCount;
-    for (unsigned c = 0; c < CHANNELS_OUT; c++) {
-      output[n] = outputFadeIn[n] * t + outputFadeOut[n] * (1 - t);
-      n++;
-    }
-  }
-
+  // XXX clip check? because macOS volume control seems to just multiply by
+  // a gain value---we should test this. if the number is very large even a
+  // low setting may be very loud when the volume setting is low but not
+  // mute.
   clamp(output, frameCount * CHANNELS_OUT);
-
-  f_ = f;
 
   return 0;
 }
@@ -163,6 +74,7 @@ int process(void *outputBuffer, void *inputBuffer, unsigned frameCount,
 // COMPILER THREAD ///////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 
+std::string lastCode = "";
 int handle_code(const char *path, const char *types, lo_arg **argv, int argc,
                 void *data, void *user_data) {
   unsigned char *blobdata = (unsigned char *)lo_blob_dataptr((lo_blob)argv[0]);
@@ -183,7 +95,6 @@ int handle_code(const char *path, const char *types, lo_arg **argv, int argc,
   // when used with a clang-format filter, this seems to ignore many minor
   // edits
   //
-  static std::string lastCode = "";
   if ((lastCode.size() == sourceCode.size()) && (lastCode == sourceCode)) {
     // skip the compile
     printf("ignoring repeated code\n");

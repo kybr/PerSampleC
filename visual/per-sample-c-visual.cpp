@@ -16,6 +16,8 @@ unsigned FRAME_COUNT = 1024;
 
 using namespace al;
 
+// https://mattdesl.svbtle.com/drawing-lines-is-hard
+
 const char* vertexCode = R"(
 #version 330
 
@@ -269,10 +271,6 @@ struct MyApp : App {
 
     shader.compile(vertexCode, fragmentCode);
 
-    horizontal.primitive(Mesh::LINES);
-    horizontal.vertex(-1, 0);
-    horizontal.vertex(1, 0);
-    horizontal.vertex(1, 0);
     vertical.primitive(Mesh::LINES);
     vertical.vertex(0, -1);
     vertical.vertex(0, 1);
@@ -282,6 +280,13 @@ struct MyApp : App {
   float cursor{0};
 
   void onResize() {
+    horizontal.primitive(Mesh::LINE_STRIP);
+    float x = -1;
+    for (int i = 0; i < width(); i++) {
+      horizontal.vertex(x, 0);
+      x += 2.0 / width();
+    }
+
     for (int j = 0; j < N; j++) {
       wave[j].primitive(Mesh::LINES);
       // wave[j].primitive(Mesh::LINE_STRIP);
@@ -294,6 +299,7 @@ struct MyApp : App {
         x += 2.0 / width();
       }
     }
+    cursor = 1;
   }
 
   int index{0};
@@ -340,8 +346,8 @@ struct MyApp : App {
       double t = streamTime;
       while (time < t) {
         for (int j = 0; j < N; j++) {
-          lows[j] = 1;
-          highs[j] = -1;
+          lows[j] = 1e35;    // was 1
+          highs[j] = -1e35;  // was -1
         }
         for (int i = 0; i < (int)samplesPerPixel; i++) {
           func(time, ins, outs);
@@ -367,14 +373,24 @@ struct MyApp : App {
 
     vertical.vertices()[0].x = cursor;
     vertical.vertices()[1].x = cursor;
+
+    if (foreground == foreground_target) {
+    } else {
+      foreground = foreground * 0.9 + foreground_target * 0.1;
+    }
   }
 
-  bool darkMode{false};
   float moveMode{0};
 
+  bool onKeyDown(Keyboard const& k) override {
+    if (k.key() == 27) {
+      // "capture" the ESC key
+      return false;
+    }
+  }
   bool onKeyUp(Keyboard const& k) override {
     if (k.key() == ' ') {
-      foreground = 1 - foreground;
+      foreground_target = 1 - foreground;
     }
 
     if (k.key() == '\\') {
@@ -393,13 +409,15 @@ struct MyApp : App {
       if (seconds > 10)  //
         seconds = 10;
     }
-    std::cerr << samplesPerPixel << std::endl;
+    // std::cerr << samplesPerPixel << std::endl;
     return true;
   }
 
   float foreground{0};
+  float foreground_target{0};
 
   void onDraw(Graphics& g) override {
+    float grey = -0.2 * (foreground - 0.5) + 0.5;
     g.clear(1 - foreground);
     g.blending(true);
     g.blendModeTrans();
@@ -410,19 +428,19 @@ struct MyApp : App {
     g.shader().uniform("moveMode", moveMode);
     g.update();
 
-    g.shader().uniform("color", 0.5);
+    g.shader().uniform("color", grey);
     g.draw(vertical);
 
     g.scale(1, 1.0 / 8, 1);
     g.translate(0, 1 + 6, 0);
-    g.shader().uniform("color", 0.5);
+    g.shader().uniform("color", grey);
     g.draw(horizontal);
     g.shader().uniform("color", foreground);
     g.draw(wave[0]);
 
     for (int n = 1; n < N; n++) {
       g.translate(0, -2, 0);
-      g.shader().uniform("color", 0.5);
+      g.shader().uniform("color", grey);
       g.draw(horizontal);
       g.shader().uniform("color", foreground);
       g.draw(wave[n]);
@@ -431,7 +449,13 @@ struct MyApp : App {
 
   void onMessage(osc::Message& m) override {
     if (m.addressPattern() == "/time") {
-      m >> streamTime;
+      double temp;
+      m >> temp;
+      if (temp < streamTime) {
+        // the server restarted; we should restart
+        time = temp - N;
+      }
+      streamTime = temp;
       // printf("time=%lf\n", streamTime);
       return;
     } else if (m.addressPattern() != "/code")
@@ -456,5 +480,7 @@ struct MyApp : App {
 
 int main() {
   MyApp app;
+  app.vsync(true);
+  app.fps(60);
   app.start();
 }

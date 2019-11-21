@@ -62,6 +62,6 @@ void process(double t, float* i, float* o) {
     h = tone(p);
   }
 
-  o[0] = h * 0.9;
-  o[1] = g * 0.9;
+  o[0] = h * 0.2;
+  o[1] = g * 0.2;
 }

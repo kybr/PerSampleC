@@ -10,7 +10,7 @@ void begin() {
 }
 
 void process(double t, float* i, float* o) {
-  float g = t * 110;
+  float g = t * 1100;
   g -= (int)g;
   int index = g * (N - 1.0);
   float f = table[index];

@@ -46,8 +46,8 @@ struct TCC {
     tcc_set_error_func(instance, (void*)err, tcc_error_handler);
 
     // treat warnings as errors
-    // tcc_set_options(instance, "-Wall -Werror -nostdinc -nostdlib");
-    tcc_set_options(instance, "-Wall -Werror");
+    tcc_set_options(instance, "-Wall -Werror -nostdinc -nostdlib");
+    // tcc_set_options(instance, "-Wall -Werror");
 
     tcc_set_output_type(instance, TCC_OUTPUT_MEMORY);
 

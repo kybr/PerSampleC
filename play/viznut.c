@@ -13,7 +13,9 @@ void process(double d, float* i, float* o) {
   // simulate 8000 Hz playback rate
   d *= 8000.0 * 1.0;
 
-  char r = t * 5 & (t >> 7) | t * 3 & (t * 4 >> 10);
+  int t = d;
+
+  char r = viznut_music(t, 5);
 
   o[0] = r / 128.0 * 0.3;
   o[1] = r / 128.0 * 0.3;

@@ -19,7 +19,6 @@ _: per-sample-c-client
 
 per-sample-c-client: per-sample-c-client.cpp
 	$(CXX) $^ -o $@ $(LINKER)
-	cp per-sample-c-client ../play
 
 clean:
 	rm -f per-sample-c-client

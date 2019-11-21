@@ -24,7 +24,6 @@ _: per-sample-c-server
 
 per-sample-c-server: per-sample-c-server.o compiler.o RtAudio.o
 	$(CXX) $^ -o $@ $(LINKER)
-	cp per-sample-c-server ../play
 
 clean:
 	rm -f per-sample-c-server
