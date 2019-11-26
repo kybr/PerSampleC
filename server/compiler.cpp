@@ -8,6 +8,8 @@
 
 #include "libtcc.h"
 
+#include "../HostInterface.h"
+
 using std::string;
 
 extern unsigned SAMPLE_RATE;
@@ -87,6 +89,11 @@ struct TCC {
 
       return false;
     }
+    // add symbols
+    tcc_add_symbol(instance, "host_reset", (void*)host_reset);
+    tcc_add_symbol(instance, "host_float", (void*)host_float);
+    tcc_add_symbol(instance, "host_int", (void*)host_int);
+    tcc_add_symbol(instance, "host_char", (void*)host_char);
 
     // tcc_add_symbol(instance, "log", (void*)logf);
     // tcc_add_symbol(instance, "log", (void*)logf);

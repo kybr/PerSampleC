@@ -7,6 +7,9 @@
 #include <vector>
 
 #include "libtcc.h"
+
+#include "../HostInterface.h"
+
 using ProcessFunc = void (*)(double time, float *input, float *output);
 using std::string;
 std::string slurp(const std::string &fileName);
@@ -50,6 +53,11 @@ int main(int argc, char *argv[]) {
     // TCC already printed the error on the standard out
     exit(1);
   }
+  // add symbols
+  tcc_add_symbol(instance, "host_reset", (void *)host_reset);
+  tcc_add_symbol(instance, "host_float", (void *)host_float);
+  tcc_add_symbol(instance, "host_int", (void *)host_int);
+  tcc_add_symbol(instance, "host_char", (void *)host_char);
 
   // XXX for now, we leave this here, but eventually, we should
   // get this linker information from a modeline
@@ -67,8 +75,8 @@ int main(int argc, char *argv[]) {
   //   tcc: error: '__init_array_end' defined twice... may be -fcommon is needed?
   //   tcc: error: '__fini_array_start' defined twice... may be -fcommon is needed?
   //   tcc: error: '__fini_array_end' defined twice... may be -fcommon is needed?
-  // int size = tcc_relocate(instance, nullptr);
   // clang-format on
+  // int size = tcc_relocate(instance, nullptr);
 
   if (-1 == tcc_relocate(instance, TCC_RELOCATE_AUTO)) {
     printf("Relocate failed! Linking problem?\n");
@@ -102,6 +110,7 @@ int main(int argc, char *argv[]) {
   float o[8] = {0};
   float maximum = 0;
   for (int n = 0; n < 44100 * 0.5; n++) {
+    host_reset();
     function((double)n / SAMPLE_RATE, i, o);
     if (fabs(o[0]) > maximum)  //
       maximum = abs(o[0]);

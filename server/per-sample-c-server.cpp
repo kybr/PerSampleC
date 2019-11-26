@@ -5,6 +5,8 @@
 #include "RtAudio.h"
 #include "compiler.h"
 
+void host_reset();
+
 unsigned CHANNELS_OUT = 2;
 unsigned CHANNELS_IN = 0;
 unsigned SAMPLE_RATE = 44100;
@@ -55,6 +57,7 @@ int process(void *outputBuffer, void *inputBuffer, unsigned frameCount,
   unsigned i = 0;
   unsigned o = 0;
   for (unsigned _ = 0; _ < frameCount; _ = 1 + _) {
+    host_reset();
     f(streamTime, &input[i], &output[o]);
     streamTime += 1.0 / SAMPLE_RATE;
     i = i + CHANNELS_IN;
