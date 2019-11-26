@@ -3,9 +3,24 @@
 
 #include "math.h"
 
-float* host_float(unsigned advance);
-int* host_int(unsigned advance);
-char* host_char(unsigned advance);
+#define N (200000)
+//#define N (100000)
+//#define N (1000000)
+
+static float _memory[N];
+static float _table[N];
+static unsigned _index = 0;
+
+// call this at the start of each process to service the system
+void synth_process() {  //
+  _index = 0;
+}
+
+void synth_begin() {
+  for (int i = 0; i < N; i++) {
+    _table[i] = sin(2 * M_PI * i / N);
+  }
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // stateless
@@ -93,6 +108,21 @@ float tri(float phase) {
   return f;
 }
 
+// float tri(float phase) {
+//   unsigned i = phase * 4;
+//   float f = phase * 4 - i;
+//   switch (i) {
+//     case 0:
+//       return f;  // noop
+//     case 1:
+//       return 1 - f;  // flip
+//     case 2:
+//       return -f;  // negate
+//     case 3:
+//       return f - 1;  // lower
+//   }
+// }
+
 float imp(float phase) {
   unsigned i = phase * 4;
   float f = phase * 4 - i;
@@ -129,6 +159,11 @@ float pdb(float phase, float a) {  //
   return pd(phase, a, 1 - a);
 }
 
+float sine(float phase) {
+  //
+  return _table[(int)(phase * (N - 1.0))];
+}
+
 // take a phasor/ramp on (0, 1) and divide it into integer pieces
 // ...but what if it's not linear? ooooooo.
 float subdiv(float p, float d) {
@@ -147,39 +182,55 @@ float frac(double d) {  //
 ///////////////////////////////////////////////////////////////////////////////
 
 float phasor(float hertz) {
-  float* phase = host_float(1);
-  *phase += hertz / SAMPLE_RATE;
-  if (*phase > 1)  //
-    *phase -= 1;
-  return *phase;
+#define PHASE (_memory[_index])
+  float value = PHASE;
+  PHASE += hertz / SAMPLE_RATE;
+  if (PHASE > 1)  //
+    PHASE -= 1;
+  _index++;
+  return value;
+#undef PHASE
 }
 
 int edge(float value) {
-  float* history = host_float(1);
-  int condition = value < *history;
-  *history = value;
+  int condition = value < _memory[_index];
+  _memory[_index] = value;
+  _index++;
   return condition;
 }
 
 float onepole(float x, float a) {
-  float* history = host_float(1);
-  *history = (1 - a) * x + a * *history;
-  return *history;
+#define HISTORY (_memory[_index])
+  HISTORY = (1 - a) * x + a * HISTORY;
+  float value = HISTORY;
+  _index++;
+  return value;
+#undef HISTORY
 }
+
+// float onepole(float x0, float a1) {
+//  float y1 = _memory[_index];
+//  y1 = (1 - a1) * x0 + a1 * y1;
+//  _memory[_index] = y1;
+//  _index++;
+//  return y1;
+//}
 
 // http://doc.sccode.org/Classes/OneZero.html
 // https://www.dsprelated.com/freebooks/filters/Elementary_Filter_Sections.html
 float onezero(float x, float b) {
-  float* history = host_float(1);
+  float* history = &_memory[_index];
+  _index += 1;
   if (b < 0)  // abs(b)
     b = -b;
-  float f = mix(x, *history, b);
-  *history = x;
+  float f = mix(x, history[0], b);
+  history[0] = x;
   return f;
 }
 
 float ms20(float x, float f, float q) {
-  float* z = host_float(2);
+  float* z = &_memory[_index];
+  _index += 2;
   float t = exp(-2 * M_PI * f / SAMPLE_RATE);
   float s = tanh(q * z[1]);
   z[0] = mix(x - s, z[0], t);
@@ -188,7 +239,8 @@ float ms20(float x, float f, float q) {
 }
 
 float quasi(float frequency, float filter) {
-  float* z = host_float(2);
+  float* z = &_memory[_index];
+  _index += 2;
   float w = frequency / SAMPLE_RATE;
   float b = 13 * pow(0.5 - w, 4.0) * filter;
   float phase = 2 * phasor(frequency) - 1;
@@ -201,7 +253,8 @@ float quasi(float frequency, float filter) {
 // filter coefficients
 // Direct Form 1, normalized...
 float biquad(float x0, float b0, float b1, float b2, float a1, float a2) {
-  float* z = host_float(4);
+  float* z = &_memory[_index];
+  _index += 4;
   // x[n-1], x[n-2], y[n-1], y[n-2]
   float y0 = b0 * x0 + b1 * z[0] + b2 * z[1] - a1 * z[2] - a2 * z[3];
   z[3] = z[2];  // y2 = y1;
@@ -220,56 +273,12 @@ float lpf(float x, float frequency, float quality) {
   float a0 = 1 + alpha;
   float a1 = -2 * cos(w0);
   float a2 = 1 - alpha;
-  return biquad(x, b0 / a0, b1 / a0, b2 / a0, a1 / a0, a2 / a0);
-}
-
-float notch(float x0, float f0, float Q) {
-  float omega = 2 * M_PI * f0 / 44100;
-  float alpha = sin(omega) / (2 * Q);
-
-  float a0 = 1 + alpha;
-  float b0 = 1;
-  float b1 = -2 * cos(omega);
-  float b2 = 1;
-  float a1 = -2 * cos(omega);
-  float a2 = 1 - alpha;
-
-  return biquad(x0, b0 / a0, b1 / a0, b2 / a0, a1 / a0, a2 / a0);
-}
-
-//  multitap delay
-void multitap(float x, float maximumTime, float* tap, int size) {
-  int maximum = 1 + (int)(44100 * maximumTime);
-  int* n = host_int(1);
-  float* buffer = host_float(maximum);
-
-  // circular buffer
-  buffer[*n] = x;
-  *n = 1 + *n;
-  if (*n >= maximum)  //
-    *n = 0;
-
-  for (int i = 0; i < size; i++) {
-    float t = *n - tap[i] * 44100;
-    if (t < 0)  //
-      t += maximum;
-    int a = t;
-    t -= a;
-    int b = 1 + a;
-    if (b >= maximum)  //
-      b = 0;
-    tap[i] = (1 - t) * buffer[a] + t * buffer[b];
-  }
-}
-
-// https://ccrma.stanford.edu/~jos/filters/DC_Blocker.html
-float dcblock(float x0) {
-  float* history = host_float(2);
-  float y0 = x0 - history[0] + history[1] * 0.9997;
-  // float y0 = x0 - history[0] + history[1] * 0.995;
-  history[0] = x0;
-  history[1] = y0;
-  return y0;
+  b0 /= a0;
+  b1 /= a0;
+  b2 /= a0;
+  a1 /= a0;
+  a2 /= a0;
+  return biquad(x, b0, b1, b2, a1, a2);
 }
 
 #endif

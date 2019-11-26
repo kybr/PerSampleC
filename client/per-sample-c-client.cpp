@@ -34,7 +34,8 @@ int main(int argc, char *argv[]) {
   //
   TCCState *instance = tcc_new();
   // TODO: determine these from a modeline
-  tcc_set_options(instance, "-Wall -Werror");
+  // tcc_set_options(instance, "-Wall -Werror");
+  tcc_set_options(instance, "-Wall -Werror -g");
   // tcc_set_options(instance, "-Wall -Werror -nostdinc");
   // tcc_set_options(instance, "-Wall -Werror -nostdinc -nostdlib");
   tcc_set_output_type(instance, TCC_OUTPUT_MEMORY);
