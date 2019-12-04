@@ -1,16 +1,16 @@
 #include "synth.h"
 
 void process(double d, float* i, float* o) {
-  d *= 1.1;
+  d *= 4.1;
 
   int which = d / 8;
   float mult = (float[]){8, 8, 4, 2, 1, 1.0 / 2, 1.0 / 4, 1.0 / 4}[which % 8];
 
   float e = frac(mult * d);
   e = 1 - e;
-  // e *= e;
   e *= e;
-  // e = 1 - e;
+  e *= e;
+  e = 1 - e;
   e = onepole(e, 0.992);
   o[2] = e;
 
@@ -38,7 +38,7 @@ void process(double d, float* i, float* o) {
     float t = (25 - i) / 25.0;
     // t = 1;
     // t = i / 25.0;
-    w += t * ar[i] / 20;
+    w += t * ar[i] / 25;
   }
 
   float br[25] = {2,  3,  5,  7,  11, 13, 17, 19, 23, 29, 31, 37, 41,
@@ -51,10 +51,10 @@ void process(double d, float* i, float* o) {
     float t = (25 - i) / 25.0;
     // t = 1;
     // t = i / 25.0;
-    y += t * br[i] / 20;
+    y += t * br[i] / 25;
   }
 
-  float r = onepole(frac(d / 32), 0.999);
+  float r = onepole(frac(d / 31), 0.999);
   o[3] = r;
   o[0] = 0.5 * dcblock(mix(b, y, r));
   o[1] = 0.5 * dcblock(mix(a, w, r));

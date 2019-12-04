@@ -187,6 +187,29 @@ float ms20(float x, float f, float q) {
   return z[1];
 }
 
+// k: (0, -16)
+// f: (0, 1)
+float diode(float x, float f, float k) {
+  float* y = host_float(4);
+
+  // feedback
+  x -= tanh(k * y[3]);
+
+  // magic!
+  float dy1 = f * ((x + y[1]) / 2 - y[0]);
+  float dy2 = f * ((y[0] + y[2]) / 2 - y[1]);
+  float dy3 = f * ((y[1] + y[3]) / 2 - y[2]);
+  float dy4 = f * (y[2] - y[3]);
+
+  // integration
+  y[0] += dy1;
+  y[1] += dy2;
+  y[2] += dy3;
+  y[3] += dy4;
+
+  return y[3];
+}
+
 float quasi(float frequency, float filter) {
   float* z = host_float(2);
   float w = frequency / SAMPLE_RATE;
