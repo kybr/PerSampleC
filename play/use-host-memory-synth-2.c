@@ -1,7 +1,7 @@
 #include "synth.h"
 
 void process(double d, float* i, float* o) {
-  d *= 4.1;
+  d *= 2.1;
 
   int which = d / 8;
   float mult = (float[]){8, 8, 4, 2, 1, 1.0 / 2, 1.0 / 4, 1.0 / 4}[which % 8];
@@ -19,8 +19,8 @@ void process(double d, float* i, float* o) {
 
   f *= mult;
   float fa = f, fb = f;
-  fa *= 1 + tri(phasor(7.1)) * 0.01;
-  fb *= 1 + tri(phasor(0.1)) * 0.01;
+  fa *= 1 + tri(phasor(7.1)) * 0.02;
+  fb *= 1 + tri(phasor(0.1)) * 0.02;
 
   float a = quasi(fa, 0.9 * tri(frac(0.2 * d)));
   float b = quasi(fb, 0.9 * tri(frac(0.2 * d + 0.7)));
