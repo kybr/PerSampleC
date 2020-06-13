@@ -1,7 +1,0 @@
-#!/bin/sh
-
-ln -s ../client/per-sample-c-client
-ln -s ../server/per-sample-c-server 
-ln -s ../allolib_playground/visual/bin/per-sample-c-visual
-ln -s source.vim .lvimrc
-

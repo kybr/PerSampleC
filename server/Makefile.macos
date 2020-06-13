@@ -11,6 +11,7 @@ COMPILER += -D__MACOSX_CORE__
 
 LINKER =
 LINKER += -ltcc
+#LINKER += ../libtcc.a
 LINKER += -ldl
 LINKER += -lpthread
 LINKER += -llo

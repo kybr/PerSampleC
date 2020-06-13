@@ -1,6 +1,5 @@
 
-
-float f = 0;
+static float f = 0;
 void process(double t, float* i, float* o) {
   f += 0.001;
   if (f > 1.0)  //

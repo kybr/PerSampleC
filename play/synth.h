@@ -15,6 +15,7 @@ float mtof(float m) {
   return 8.175799f * powf(2.0f, m / 12.0f);
   // return 440.0f * powf(2.0f, (m - 69.0f) / 12.0f);
 }
+
 float ftom(float f) {
   return 12.0f * log2f(f / 8.175799f);
   // return 12.0f * log2f(f / 440.0f) - 69.0f;
@@ -149,8 +150,9 @@ float frac(double d) {  //
 float phasor(float hertz) {
   float* phase = host_float(1);
   *phase += hertz / SAMPLE_RATE;
-  if (*phase > 1)  //
-    *phase -= 1;
+  *phase -= floor(*phase);
+  // if (*phase > 1)  //
+  //  *phase -= 1;
   return *phase;
 }
 
@@ -210,6 +212,7 @@ float diode(float x, float f, float k) {
   return y[3];
 }
 
+// http://scp.web.elte.hu/papers/synthesis1.pdf
 float quasi(float frequency, float filter) {
   float* z = host_float(2);
   float w = frequency / SAMPLE_RATE;

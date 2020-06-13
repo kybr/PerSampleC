@@ -11,6 +11,7 @@ COMPILER += -g
 LINKER =
 LINKER += -llo
 LINKER += -ltcc
+#LINKER += ../libtcc.a
 
 _: per-sample-c-client
 
