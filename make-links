@@ -1,0 +1,23 @@
+#!/bin/bash
+
+list=()
+list+=(../client/per-sample-c-client)
+list+=(../server/per-sample-c-server)
+list+=(../allolib_playground/visual/bin/per-sample-c-visual)
+list+=(../play/.lvimrc)
+list+=(../play/synth.h)
+list+=(../play/math.h)
+list+=(../server/tinycc/libtcc.dylib)
+list+=(../server/tinycc-install/lib/tcc/include/tcc_predefs.h)
+
+for file in "${list[@]}"; do
+  if [ ! -f $file ]
+  then
+    echo not found: $file
+    exit
+  fi
+done
+
+for file in "${list[@]}"; do
+  ln -s $file
+done

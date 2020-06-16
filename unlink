@@ -1,0 +1,15 @@
+#!/bin/bash
+
+list=()
+list+=(per-sample-c-client)
+list+=(per-sample-c-server)
+list+=(per-sample-c-visual)
+list+=(.lvimrc)
+list+=(synth.h)
+list+=(math.h)
+list+=(libtcc.dylib)
+list+=(tcc_predefs.h)
+
+for file in "${list[@]}"; do
+  unlink $file
+done

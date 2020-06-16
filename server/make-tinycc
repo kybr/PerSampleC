@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+DIR=`pwd`/tinycc-install
+rm -rf tinycc-install
+cd tinycc
+make distclean
+./configure --prefix=$DIR
+make
+make libtcc.dylib
+make install

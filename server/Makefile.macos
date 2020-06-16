@@ -8,13 +8,18 @@ COMPILER =
 COMPILER += -Wall
 COMPILER += -g
 COMPILER += -D__MACOSX_CORE__
+COMPILER += -Itinycc-install/include # libtcc.h
+COMPILER += -DUSE_DYNAMIC
 
 LINKER =
-LINKER += -ltcc
-#LINKER += ../libtcc.a
+#LINKER += tinycc-install/lib/libtcc.a
+LINKER += -Ltinycc-install/lib # libtcc.a
+LINKER += -ltcc # libtcc.a
 LINKER += -ldl
 LINKER += -lpthread
 LINKER += -llo
+#LINKER += -lm
+#LINKER += -lSystem
 LINKER += -framework CoreAudio
 LINKER += -framework CoreFoundation
 
